@@ -1,5 +1,5 @@
 // Service worker – appka funguje aj bez internetu (okrem nových dlaždíc mapy)
-const VERSION = 'dundies-v5';
+const VERSION = 'dundies-v6';
 const TILES = 'dundies-tiles';
 const MAX_TILES = 2000;
 

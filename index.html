@@ -58,6 +58,10 @@
   .pin-wrap { background: none; border: 0; }
   .pin { width: 46px; height: 46px; border-radius: 50%; border: 3px solid #fff; background: var(--accent) center/cover no-repeat; box-shadow: 0 3px 10px rgba(0,0,0,.35); display: grid; place-items: center; font-size: 20px; position: relative; }
   .pin::after { content: ""; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top: 8px solid #fff; border-bottom: 0; }
+  .pol { width: 64px; background: #fff; padding: 4px 4px 0; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,.35); transform: rotate(-4deg); position: relative; }
+  .pol .ph { width: 56px; height: 56px; border-radius: 2px; background: #ddd center/cover no-repeat; }
+  .pol .cap { font-size: 9px; font-weight: 600; color: #333; text-align: center; padding: 3px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pol::after { content: ""; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%) rotate(4deg); border: 7px solid transparent; border-top: 9px solid #fff; border-bottom: 0; }
   .me { width: 18px; height: 18px; border-radius: 50%; background: #2b8cff; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(43,140,255,.25); }
 
   /* Spodné panely */
@@ -267,8 +271,12 @@ let meMarker = null;
 
 function iconFor(m) {
   const p = m.photos && m.photos[0];
-  const html = p ? `<div class="pin" style="background-image:url('${blobUrl(p)}')"></div>` : `<div class="pin">📍</div>`;
-  return L.divIcon({ html, className: 'pin-wrap', iconSize: [46, 46], iconAnchor: [23, 55] });
+  if (p) {
+    const cap = String(m.name || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const html = `<div class="pol"><div class="ph" style="background-image:url('${blobUrl(p)}')"></div><div class="cap">${cap}</div></div>`;
+    return L.divIcon({ html, className: 'pin-wrap', iconSize: [64, 80], iconAnchor: [32, 88] });
+  }
+  return L.divIcon({ html: '<div class="pin">📍</div>', className: 'pin-wrap', iconSize: [46, 46], iconAnchor: [23, 55] });
 }
 function render() {
   layer.clearLayers();
