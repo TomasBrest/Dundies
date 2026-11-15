@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#0b2a4a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dundies">
+<title>Dundies</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  :root {
+    --navy: #0b2a4a;
+    --accent: #ff4d5e;
+    --bg: #ffffff;
+    --text: #13202e;
+    --muted: #6b7785;
+    --line: #e6eaef;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); background: var(--navy); }
+  #map { position: fixed; inset: 0; background: #aad3df; }
+  button { font: inherit; cursor: pointer; border: 0; }
+
+  /* Horná lišta */
+  .topbar { position: fixed; top: calc(var(--safe-t) + 10px); left: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; }
+  .search { flex: 1; position: relative; }
+  .search input { width: 100%; height: 46px; border: 0; border-radius: 23px; padding: 0 16px 0 42px; font-size: 16px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.18); outline: none; }
+  .search::before { content: "🔍"; position: absolute; left: 15px; top: 13px; font-size: 16px; opacity: .6; }
+  .results { position: absolute; top: 52px; left: 0; right: 0; background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,.2); overflow: hidden; display: none; }
+  .results.show { display: block; }
+  .results div { padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: 15px; }
+  .results div:last-child { border-bottom: 0; }
+  .round { width: 46px; height: 46px; border-radius: 23px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.18); font-size: 20px; display: grid; place-items: center; flex: none; }
+
+  /* Plávajúce tlačidlá */
+  .fab { position: fixed; right: 16px; bottom: calc(var(--safe-b) + 24px); z-index: 1000; width: 64px; height: 64px; border-radius: 32px; background: var(--accent); color: #fff; font-size: 34px; line-height: 1; box-shadow: 0 6px 18px rgba(255,77,94,.45); display: grid; place-items: center; }
+  .locate { position: fixed; right: 25px; bottom: calc(var(--safe-b) + 100px); z-index: 1000; }
+
+  /* Režim výberu miesta */
+  .picker { position: fixed; left: 12px; right: 12px; bottom: calc(var(--safe-b) + 100px); z-index: 1001; background: var(--navy); color: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,.3); display: none; }
+  .picker.show { display: block; }
+  .picker p { margin: 0 0 10px; font-size: 15px; }
+  .picker .row { display: flex; gap: 8px; }
+  .picker button { flex: 1; height: 40px; border-radius: 10px; background: rgba(255,255,255,.15); color: #fff; font-size: 15px; }
+  .picker button.primary { background: var(--accent); }
+  body.picking #map { cursor: crosshair; }
+  body.picking .fab, body.picking .locate { display: none; }
+
+  /* Značky na mape */
+  .pin-wrap { background: none; border: 0; }
+  .pin { width: 46px; height: 46px; border-radius: 50%; border: 3px solid #fff; background: var(--accent) center/cover no-repeat; box-shadow: 0 3px 10px rgba(0,0,0,.35); display: grid; place-items: center; font-size: 20px; position: relative; }
+  .pin::after { content: ""; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top: 8px solid #fff; border-bottom: 0; }
+  .me { width: 18px; height: 18px; border-radius: 50%; background: #2b8cff; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(43,140,255,.25); }
+
+  /* Spodné panely */
+  .backdrop { position: fixed; inset: 0; z-index: 1999; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .25s; }
+  .backdrop.show { opacity: 1; pointer-events: auto; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2000; background: var(--bg); border-radius: 20px 20px 0 0; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px 18px calc(var(--safe-b) + 20px); transform: translateY(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1); box-shadow: 0 -4px 30px rgba(0,0,0,.2); }
+  .sheet.show { transform: translateY(0); }
+  .grip { width: 40px; height: 5px; border-radius: 3px; background: #d5dbe2; margin: 4px auto 12px; }
+  .sheet h2 { margin: 0 0 4px; font-size: 22px; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
+  label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .03em; }
+  input[type=text], input[type=date], textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f6f8fa; outline: none; color: var(--text); }
+  input[type=date] { -webkit-appearance: none; min-height: 48px; }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus, textarea:focus { border-color: #9cc4ec; background: #fff; }
+  .btn { display: block; width: 100%; height: 50px; border-radius: 14px; font-size: 16px; font-weight: 600; margin-top: 12px; background: #eef1f4; color: var(--text); }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.danger { background: #fff0f1; color: #d22a3c; }
+  .btn:disabled { opacity: .5; }
+  .btns { display: flex; gap: 10px; }
+  .btns .btn { flex: 1; }
+
+  .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .thumb { position: relative; aspect-ratio: 1; border-radius: 10px; background: #eef1f4 center/cover no-repeat; overflow: hidden; }
+  .thumb .x { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 13px; background: rgba(0,0,0,.6); color: #fff; font-size: 14px; display: grid; place-items: center; }
+  .addphoto { aspect-ratio: 1; border-radius: 10px; border: 2px dashed #c9d2dc; display: grid; place-items: center; color: var(--muted); font-size: 13px; text-align: center; background: #fafbfc; }
+  .addphoto b { display: block; font-size: 28px; font-weight: 400; }
+  .note { white-space: pre-wrap; line-height: 1.5; margin: 0 0 14px; }
+
+  .list-item { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .list-item .t { width: 56px; height: 56px; border-radius: 12px; background: #eef1f4 center/cover no-repeat; flex: none; display: grid; place-items: center; font-size: 22px; }
+  .list-item b { display: block; font-size: 16px; }
+  .list-item span { color: var(--muted); font-size: 13px; }
+  .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+
+  /* Fotka na celú obrazovku */
+  .lightbox { position: fixed; inset: 0; z-index: 3000; background: #000; display: none; align-items: center; justify-content: center; }
+  .lightbox.show { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .lightbox .close { position: absolute; top: calc(var(--safe-t) + 12px); right: 12px; background: rgba(255,255,255,.2); color: #fff; }
+  .lightbox .count { position: absolute; bottom: calc(var(--safe-b) + 16px); color: #fff; opacity: .7; font-size: 14px; }
+
+  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 70px); transform: translateX(-50%); z-index: 4000; background: rgba(19,32,46,.92); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .leaflet-control-attribution { font-size: 9px !important; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+
+<div class="topbar">
+  <div class="search">
+    <input id="q" type="search" placeholder="Hľadať miesto…" autocomplete="off" enterkeyhint="search">
+    <div id="results" class="results"></div>
+  </div>
+  <button class="round" id="btnList" aria-label="Zoznam">📖</button>
+  <button class="round" id="btnMenu" aria-label="Menu">⋯</button>
+</div>
+
+<button class="round locate" id="btnLocate" aria-label="Moja poloha">🎯</button>
+<button class="fab" id="btnAdd" aria-label="Pridať spomienku">+</button>
+
+<div class="picker" id="picker">
+  <p>Ťukni na mapu, kde ste boli 📍</p>
+  <div class="row">
+    <button id="pickHere" class="primary">Som tu teraz</button>
+    <button id="pickCancel">Zrušiť</button>
+  </div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+
+<!-- Formulár -->
+<div class="sheet" id="formSheet">
+  <div class="grip"></div>
+  <h2 id="formTitle">Nový Dundie 🏆</h2>
+  <p class="sub" id="formLoc"></p>
+  <label for="fName">Miesto</label>
+  <input id="fName" type="text" placeholder="napr. Dubrovník">
+  <label for="fDate">Dátum</label>
+  <input id="fDate" type="date">
+  <label for="fNote">Poznámka</label>
+  <textarea id="fNote" placeholder="Čo sme tam zažili…"></textarea>
+  <label>Fotky</label>
+  <div class="thumbs" id="fThumbs"></div>
+  <input id="fFiles" type="file" accept="image/*" multiple hidden>
+  <div class="btns">
+    <button class="btn" id="fCancel">Zrušiť</button>
+    <button class="btn primary" id="fSave">Uložiť</button>
+  </div>
+</div>
+
+<!-- Detail -->
+<div class="sheet" id="detailSheet">
+  <div class="grip"></div>
+  <h2 id="dName"></h2>
+  <p class="sub" id="dDate"></p>
+  <p class="note" id="dNote"></p>
+  <div class="thumbs" id="dThumbs"></div>
+  <div class="btns">
+    <button class="btn" id="dEdit">✏️ Upraviť</button>
+    <button class="btn danger" id="dDelete">🗑 Zmazať</button>
+  </div>
+</div>
+
+<!-- Zoznam -->
+<div class="sheet" id="listSheet">
+  <div class="grip"></div>
+  <h2>Naše Dundies 🏆</h2>
+  <p class="sub" id="listCount"></p>
+  <div id="list"></div>
+</div>
+
+<!-- Menu -->
+<div class="sheet" id="menuSheet">
+  <div class="grip"></div>
+  <h2>Nastavenia</h2>
+  <p class="sub">Spomienky sú uložené len v tomto telefóne. Občas si sprav zálohu.</p>
+  <button class="btn" id="mExport">💾 Uložiť zálohu</button>
+  <button class="btn" id="mImport">📂 Obnoviť zo zálohy</button>
+  <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <button class="btn" id="mFit">🌍 Ukázať všetky na mape</button>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <img id="lbImg" alt="">
+  <button class="round close" id="lbClose">✕</button>
+  <div class="count" id="lbCount"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+
+/* ---------- Databáza (IndexedDB) ---------- */
+const STORE = 'memories';
+const dbReady = new Promise((res, rej) => {
+  const r = indexedDB.open('spomienky', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: 'id' });
+  r.onsuccess = () => res(r.result);
+  r.onerror = () => rej(r.error);
+});
+async function dbAll() {
+  const db = await dbReady;
+  return new Promise((res, rej) => {
+    const q = db.transaction(STORE).objectStore(STORE).getAll();
+    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
+  });
+}
+async function dbDo(fn) {
+  const db = await dbReady;
+  return new Promise((res, rej) => {
+    const t = db.transaction(STORE, 'readwrite');
+    fn(t.objectStore(STORE));
+    t.oncomplete = res; t.onerror = () => rej(t.error);
+  });
+}
+const dbPut = m => dbDo(s => s.put(m));
+const dbDel = id => dbDo(s => s.delete(id));
+
+/* ---------- Pomocné ---------- */
+const urls = new Map();
+function blobUrl(b) { if (!urls.has(b)) urls.set(b, URL.createObjectURL(b)); return urls.get(b); }
+function today() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+function fmtDate(s) {
+  if (!s) return '';
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200);
+}
+function loadImg(file) {
+  return new Promise((res, rej) => {
+    const u = URL.createObjectURL(file), img = new Image();
+    img.onload = () => { URL.revokeObjectURL(u); res(img); };
+    img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('Fotku sa nepodarilo načítať')); };
+    img.src = u;
+  });
+}
+// Zmenší fotku, aby sa do telefónu zmestilo veľa spomienok
+async function shrink(file, max = 1600, q = 0.82) {
+  const img = await loadImg(file);
+  const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement('canvas');
+  c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+  c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+  return new Promise(res => c.toBlob(b => res(b || file), 'image/jpeg', q));
+}
+const blobToData = b => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
+
+/* ---------- Mapa ---------- */
+const map = L.map('map', { zoomControl: false, worldCopyJump: true, attributionControl: true }).setView([48.7, 19.5], 4);
+L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+  maxZoom: 19, subdomains: 'abcd',
+  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> © <a href="https://carto.com/">CARTO</a>'
+}).addTo(map);
+
+let memories = [];
+const layer = L.layerGroup().addTo(map);
+let meMarker = null;
+
+function iconFor(m) {
+  const p = m.photos && m.photos[0];
+  const html = p ? `<div class="pin" style="background-image:url('${blobUrl(p)}')"></div>` : `<div class="pin">📍</div>`;
+  return L.divIcon({ html, className: 'pin-wrap', iconSize: [46, 46], iconAnchor: [23, 55] });
+}
+function render() {
+  layer.clearLayers();
+  for (const m of memories) {
+    L.marker([m.lat, m.lng], { icon: iconFor(m) }).on('click', () => openDetail(m)).addTo(layer);
+  }
+}
+function fitAll() {
+  if (!memories.length) return;
+  if (memories.length === 1) map.setView([memories[0].lat, memories[0].lng], 10);
+  else map.fitBounds(L.latLngBounds(memories.map(m => [m.lat, m.lng])), { padding: [60, 60], maxZoom: 12 });
+}
+
+/* ---------- Panely ---------- */
+let openSheetEl = null;
+function openSheet(id) {
+  if (openSheetEl) openSheetEl.classList.remove('show');
+  openSheetEl = $(id); openSheetEl.scrollTop = 0;
+  openSheetEl.classList.add('show'); $('#backdrop').classList.add('show');
+}
+function closeSheet() {
+  if (openSheetEl) openSheetEl.classList.remove('show');
+  openSheetEl = null; $('#backdrop').classList.remove('show');
+}
+$('#backdrop').onclick = closeSheet;
+
+// potiahnutie panelu nadol ho zavrie
+document.querySelectorAll('.sheet').forEach(s => {
+  let y0 = null;
+  s.addEventListener('touchstart', e => { y0 = s.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+  s.addEventListener('touchmove', e => {
+    if (y0 === null) return;
+    const dy = e.touches[0].clientY - y0;
+    if (dy > 0) { s.style.transition = 'none'; s.style.transform = `translateY(${dy}px)`; }
+  }, { passive: true });
+  s.addEventListener('touchend', e => {
+    if (y0 === null) return;
+    const dy = e.changedTouches[0].clientY - y0;
+    s.style.transition = ''; s.style.transform = '';
+    if (dy > 110) closeSheet();
+    y0 = null;
+  });
+});
+
+/* ---------- Pridávanie ---------- */
+let draft = null; // { id?, lat, lng, name, date, note, photos: Blob[] }
+
+function startPicking() { document.body.classList.add('picking'); $('#picker').classList.add('show'); }
+function stopPicking() { document.body.classList.remove('picking'); $('#picker').classList.remove('show'); }
+$('#btnAdd').onclick = startPicking;
+$('#pickCancel').onclick = stopPicking;
+$('#pickHere').onclick = () => {
+  locate(pos => { stopPicking(); openForm({ lat: pos.lat, lng: pos.lng }); });
+};
+map.on('click', e => {
+  $('#results').classList.remove('show');
+  if (!document.body.classList.contains('picking')) return;
+  stopPicking(); openForm({ lat: e.latlng.lat, lng: e.latlng.lng });
+});
+// dlhé podržanie prsta na mape = rýchle pridanie
+map.on('contextmenu', e => openForm({ lat: e.latlng.lat, lng: e.latlng.lng }));
+
+function openForm(m) {
+  draft = { name: '', date: today(), note: '', photos: [], ...m, photos: [...(m.photos || [])] };
+  $('#formTitle').textContent = m.id ? 'Upraviť Dundie' : 'Nový Dundie 🏆';
+  $('#fName').value = draft.name; $('#fDate').value = draft.date; $('#fNote').value = draft.note;
+  $('#formLoc').textContent = `📍 ${draft.lat.toFixed(4)}, ${draft.lng.toFixed(4)}`;
+  drawFormThumbs(); openSheet('#formSheet');
+  if (!m.id) suggestName(draft);
+}
+async function suggestName(d) {
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&zoom=10&accept-language=sk&lat=${d.lat}&lon=${d.lng}`);
+    const j = await r.json(); const a = j.address || {};
+    const name = a.city || a.town || a.village || a.municipality || a.county || a.state || a.country;
+    if (name && draft === d && !$('#fName').value) {
+      $('#fName').value = name;
+      $('#formLoc').textContent = `📍 ${[name, a.country].filter(Boolean).filter((v, i, x) => x.indexOf(v) === i).join(', ')}`;
+    }
+  } catch (_) { /* bez internetu – nevadí */ }
+}
+function drawFormThumbs() {
+  const box = $('#fThumbs'); box.innerHTML = '';
+  draft.photos.forEach((b, i) => {
+    const t = document.createElement('div'); t.className = 'thumb'; t.style.backgroundImage = `url('${blobUrl(b)}')`;
+    const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕';
+    x.onclick = () => { draft.photos.splice(i, 1); drawFormThumbs(); };
+    t.appendChild(x); box.appendChild(t);
+  });
+  const add = document.createElement('button'); add.className = 'addphoto';
+  add.innerHTML = '<span><b>+</b>Pridať fotky</span>';
+  add.onclick = () => $('#fFiles').click();
+  box.appendChild(add);
+}
+$('#fFiles').onchange = async e => {
+  const files = [...e.target.files]; e.target.value = '';
+  if (!files.length) return;
+  const save = $('#fSave'); save.disabled = true; save.textContent = 'Spracúvam fotky…';
+  for (const f of files) {
+    try { draft.photos.push(await shrink(f)); drawFormThumbs(); }
+    catch (err) { toast('Jednu fotku sa nepodarilo načítať'); }
+  }
+  save.disabled = false; save.textContent = 'Uložiť';
+};
+$('#fCancel').onclick = () => { draft = null; closeSheet(); };
+$('#fSave').onclick = async () => {
+  const m = {
+    id: draft.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    lat: draft.lat, lng: draft.lng,
+    name: $('#fName').value.trim() || 'Bez názvu',
+    date: $('#fDate').value || today(),
+    note: $('#fNote').value.trim(),
+    photos: draft.photos,
+    created: draft.created || Date.now()
+  };
+  try {
+    await dbPut(m);
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
+  } catch (err) { toast('Nepodarilo sa uložiť – možno je plné úložisko'); return; }
+  const i = memories.findIndex(x => x.id === m.id);
+  if (i >= 0) memories[i] = m; else memories.push(m);
+  draft = null; render(); closeSheet(); toast('A Dundie ide do… tohto miesta! 🏆');
+};
+
+/* ---------- Detail ---------- */
+let current = null;
+function openDetail(m) {
+  current = m;
+  $('#dName').textContent = m.name;
+  $('#dDate').textContent = fmtDate(m.date);
+  $('#dNote').textContent = m.note || '';
+  $('#dNote').style.display = m.note ? '' : 'none';
+  const box = $('#dThumbs'); box.innerHTML = '';
+  m.photos.forEach((b, i) => {
+    const t = document.createElement('button'); t.className = 'thumb'; t.style.backgroundImage = `url('${blobUrl(b)}')`;
+    t.onclick = () => openLightbox(m.photos, i);
+    box.appendChild(t);
+  });
+  openSheet('#detailSheet');
+}
+$('#dEdit').onclick = () => openForm(current);
+$('#dDelete').onclick = async () => {
+  if (!confirm(`Naozaj zmazať „${current.name}“?`)) return;
+  await dbDel(current.id);
+  memories = memories.filter(x => x.id !== current.id);
+  render(); closeSheet(); toast('Zmazané');
+};
+
+/* ---------- Fotka na celú obrazovku ---------- */
+let lb = { list: [], i: 0 };
+function showLb() { $('#lbImg').src = blobUrl(lb.list[lb.i]); $('#lbCount').textContent = lb.list.length > 1 ? `${lb.i + 1} / ${lb.list.length}` : ''; }
+function openLightbox(list, i) { lb = { list, i }; showLb(); $('#lightbox').classList.add('show'); }
+$('#lbClose').onclick = e => { e.stopPropagation(); $('#lightbox').classList.remove('show'); };
+$('#lightbox').onclick = e => {
+  if (lb.list.length < 2) return $('#lightbox').classList.remove('show');
+  lb.i = (lb.i + (e.clientX > innerWidth / 2 ? 1 : lb.list.length - 1)) % lb.list.length; showLb();
+};
+let sx = null;
+$('#lightbox').addEventListener('touchstart', e => { sx = e.touches[0].clientX; }, { passive: true });
+$('#lightbox').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - sx;
+  if (Math.abs(dx) > 50 && lb.list.length > 1) { e.preventDefault(); lb.i = (lb.i + (dx < 0 ? 1 : lb.list.length - 1)) % lb.list.length; showLb(); }
+});
+
+/* ---------- Zoznam ---------- */
+$('#btnList').onclick = () => {
+  const box = $('#list'); box.innerHTML = '';
+  const sorted = [...memories].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  $('#listCount').textContent = memories.length ? `${memories.length} ${memories.length === 1 ? 'miesto' : memories.length < 5 ? 'miesta' : 'miest'}` : '';
+  if (!sorted.length) box.innerHTML = '<div class="empty">Zatiaľ tu nič nie je.<br>Ťukni na <b>+</b> a pridaj prvé miesto 🌍</div>';
+  for (const m of sorted) {
+    const row = document.createElement('div'); row.className = 'list-item';
+    const t = document.createElement('div'); t.className = 't';
+    if (m.photos[0]) t.style.backgroundImage = `url('${blobUrl(m.photos[0])}')`; else t.textContent = '📍';
+    const txt = document.createElement('div');
+    const b = document.createElement('b'); b.textContent = m.name;
+    const s = document.createElement('span'); s.textContent = fmtDate(m.date) + (m.photos.length ? ` · ${m.photos.length} 📷` : '');
+    txt.append(b, s); row.append(t, txt);
+    row.onclick = () => { closeSheet(); map.flyTo([m.lat, m.lng], Math.max(map.getZoom(), 10), { duration: 1.2 }); setTimeout(() => openDetail(m), 1300); };
+    box.appendChild(row);
+  }
+  openSheet('#listSheet');
+};
+
+/* ---------- Poloha ---------- */
+function locate(cb) {
+  if (!navigator.geolocation) return toast('Poloha nie je dostupná');
+  toast('Hľadám tvoju polohu…');
+  navigator.geolocation.getCurrentPosition(p => {
+    const ll = { lat: p.coords.latitude, lng: p.coords.longitude };
+    if (meMarker) meMarker.setLatLng(ll);
+    else meMarker = L.marker(ll, { icon: L.divIcon({ html: '<div class="me"></div>', className: 'pin-wrap', iconSize: [18, 18] }), interactive: false }).addTo(map);
+    map.flyTo(ll, Math.max(map.getZoom(), 13), { duration: 1 });
+    cb && cb(ll);
+  }, () => toast('Polohu sa nepodarilo zistiť – povoľ ju v nastaveniach'), { enableHighAccuracy: true, timeout: 15000 });
+}
+$('#btnLocate').onclick = () => locate();
+
+/* ---------- Vyhľadávanie ---------- */
+let searchTimer;
+$('#q').addEventListener('input', () => { clearTimeout(searchTimer); searchTimer = setTimeout(search, 600); });
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') { clearTimeout(searchTimer); search(); $('#q').blur(); } });
+async function search() {
+  const q = $('#q').value.trim(), box = $('#results');
+  if (q.length < 2) { box.classList.remove('show'); return; }
+  try {
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&accept-language=sk&q=${encodeURIComponent(q)}`);
+    const list = await r.json();
+    box.innerHTML = '';
+    if (!list.length) box.innerHTML = '<div>Nič som nenašiel</div>';
+    for (const p of list) {
+      const d = document.createElement('div'); d.textContent = p.display_name;
+      d.onclick = () => {
+        box.classList.remove('show'); $('#q').value = ''; $('#q').blur();
+        map.flyTo([+p.lat, +p.lon], 12, { duration: 1.2 });
+      };
+      box.appendChild(d);
+    }
+    box.classList.add('show');
+  } catch (_) { toast('Vyhľadávanie potrebuje internet'); }
+}
+
+/* ---------- Záloha ---------- */
+$('#btnMenu').onclick = () => openSheet('#menuSheet');
+$('#mFit').onclick = () => { closeSheet(); fitAll(); };
+$('#mExport').onclick = async () => {
+  if (!memories.length) return toast('Zatiaľ nie je čo zálohovať');
+  toast('Pripravujem zálohu…');
+  const data = {
+    app: 'spomienky', version: 1, exported: new Date().toISOString(),
+    memories: await Promise.all(memories.map(async m => ({ ...m, photos: await Promise.all(m.photos.map(blobToData)) })))
+  };
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const name = `dundies-zaloha-${today()}.json`;
+  const file = new File([blob], name, { type: 'application/json' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: 'Záloha Dundies' }); return; }
+    catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+};
+$('#mImport').onclick = () => $('#importFile').click();
+$('#importFile').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (!data || !Array.isArray(data.memories)) throw new Error();
+    let n = 0;
+    for (const m of data.memories) {
+      if (typeof m.lat !== 'number' || typeof m.lng !== 'number') continue;
+      const photos = await Promise.all((m.photos || []).map(d => fetch(d).then(r => r.blob())));
+      const mem = { id: String(m.id), lat: m.lat, lng: m.lng, name: String(m.name || 'Bez názvu'), date: String(m.date || ''), note: String(m.note || ''), photos, created: m.created || Date.now() };
+      await dbPut(mem);
+      const i = memories.findIndex(x => x.id === mem.id);
+      if (i >= 0) memories[i] = mem; else memories.push(mem);
+      n++;
+    }
+    render(); fitAll(); closeSheet(); toast(`Obnovené: ${n} spomienok`);
+  } catch (_) { toast('Tento súbor nie je záloha spomienok'); }
+};
+
+/* ---------- Štart ---------- */
+dbAll().then(list => { memories = list; render(); fitAll(); })
+  .catch(() => toast('Úložisko nie je dostupné'));
+
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
