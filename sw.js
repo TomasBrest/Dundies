@@ -1,6 +1,6 @@
 // Service worker – appka funguje aj bez internetu (okrem nových dlaždíc mapy)
-const VERSION = 'spomienky-v4';
-const TILES = 'spomienky-tiles';
+const VERSION = 'dundies-v5';
+const TILES = 'dundies-tiles';
 const MAX_TILES = 2000;
 
 const SHELL = [
@@ -44,7 +44,7 @@ self.addEventListener('fetch', e => {
   if (url.hostname.includes('nominatim')) return;
 
   // Dlaždice mapy – najprv z cache, potom z internetu
-  if (url.hostname.endsWith('basemaps.cartocdn.com')) {
+  if (url.hostname === 'tile.openstreetmap.org') {
     e.respondWith(
       caches.open(TILES).then(async c => {
         const hit = await c.match(req);
