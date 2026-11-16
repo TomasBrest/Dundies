@@ -1,5 +1,5 @@
 // Service worker – appka sa načíta rýchlo aj pri slabom signáli
-const VERSION = 'dundies-v9';
+const VERSION = 'dundies-v11';
 const TILES = 'dundies-tiles';
 const MAX_TILES = 2000;
 const SHELL = [
@@ -61,5 +61,28 @@ self.addEventListener('fetch', e => {
     const hit = await c.match(req, { ignoreSearch: true });
     const net = fetch(req).then(res => { if (res.ok) c.put(req, res.clone()); return res; }).catch(() => hit);
     return hit || net;
+  }));
+});
+
+// Push notifikácie
+self.addEventListener('push', e => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { body: e.data && e.data.text() }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Dundies 🏆', {
+    body: d.body || '',
+    icon: './icons/icon-192.png',
+    badge: './icons/icon-192.png',
+    tag: d.tag,
+    data: { url: d.url || self.registration.scope }
+  }));
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+    for (const c of list) {
+      if (c.url.startsWith(self.registration.scope) && 'focus' in c) { c.postMessage({ open: url }); return c.focus(); }
+    }
+    return self.clients.openWindow(url);
   }));
 });

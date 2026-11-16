@@ -78,6 +78,33 @@
   .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
   .styleBtn { position: fixed; right: 25px; bottom: calc(var(--safe-b) + 156px); z-index: 1000; }
   body.picking .styleBtn { display: none; }
+  .chips { position: fixed; top: calc(var(--safe-t) + 64px); left: 0; right: 0; z-index: 999; display: flex; gap: 6px; overflow-x: auto; padding: 2px 10px 8px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chips button { flex: none; height: 34px; padding: 0 14px; border-radius: 17px; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.15); font-size: 14px; font-weight: 600; color: var(--text); white-space: nowrap; }
+  .chips button.on { background: var(--navy); color: #fff; }
+  .counter { position: fixed; left: 12px; bottom: calc(var(--safe-b) + 30px); z-index: 1000; background: #fff; border-radius: 16px; padding: 7px 12px; font-size: 14px; font-weight: 600; box-shadow: 0 2px 10px rgba(0,0,0,.18); }
+  body.picking .counter, body.picking .chips { display: none; }
+  .round { position: relative; }
+  .nbadge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; padding: 0 5px; border: 2px solid #fff; }
+  .cats { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cats button { padding: 8px 12px; border-radius: 18px; background: #eef1f4; font-size: 14px; color: var(--text); }
+  .cats button.on { background: var(--navy); color: #fff; }
+  .row2 { display: flex; gap: 10px; } .row2 > div { flex: 1; min-width: 0; }
+  .plan { border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; margin-top: 10px; background: #fff; }
+  .plan.pending { border-color: #ffd27a; background: #fffaf0; }
+  .plan.accepted { border-color: #9fe0b5; background: #f3fcf6; }
+  .plan.declined { opacity: .7; }
+  .plan.past { opacity: .55; }
+  .plan .when { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .plan b { display: block; font-size: 17px; margin: 2px 0; }
+  .plan span { color: var(--muted); font-size: 13px; }
+  .plan .pn { margin: 6px 0 0; font-size: 14px; white-space: pre-wrap; }
+  .plan .st { margin-top: 8px; font-size: 14px; font-weight: 600; }
+  .plan .act { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .plan .act button, .plan .act a { height: 40px; padding: 0 14px; border-radius: 10px; font-size: 14px; font-weight: 600; background: #eef1f4; color: var(--text); display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+  .plan .act .yes { background: #1f8a4c; color: #fff; flex: 1; }
+  .plan .act .no { background: #fff0f1; color: #d22a3c; flex: 1; }
+  .plan .act .gcal { background: #1a73e8; color: #fff; flex: 1; }
   .me { width: 18px; height: 18px; border-radius: 50%; background: #2b8cff; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(43,140,255,.25); }
 
   /* Panely */
@@ -90,8 +117,8 @@
   .sheet h2 { margin: 0 0 4px; font-size: 22px; }
   .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
   label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .03em; }
-  input[type=text], input[type=email], input[type=password], input[type=date], textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f6f8fa; outline: none; color: var(--text); }
-  input[type=date] { -webkit-appearance: none; min-height: 48px; }
+  input[type=text], input[type=email], input[type=password], input[type=date], input[type=time], textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f6f8fa; outline: none; color: var(--text); }
+  input[type=date], input[type=time] { -webkit-appearance: none; min-height: 48px; }
   textarea { min-height: 90px; resize: vertical; }
   input:focus, textarea:focus { border-color: #9cc4ec; background: #fff; }
   .btn { display: block; width: 100%; height: 50px; border-radius: 14px; font-size: 16px; font-weight: 600; margin-top: 12px; background: #eef1f4; color: var(--text); }
@@ -134,7 +161,7 @@
   .lightbox .close { position: absolute; top: calc(var(--safe-t) + 12px); right: 12px; background: rgba(255,255,255,.2); color: #fff; }
   .lightbox .count { position: absolute; bottom: calc(var(--safe-b) + 16px); color: #fff; opacity: .7; font-size: 14px; }
 
-  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 70px); transform: translateX(-50%); z-index: 6000; background: rgba(19,32,46,.92); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90vw; text-align: center; }
+  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 112px); transform: translateX(-50%); z-index: 6000; background: rgba(19,32,46,.92); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; }
   .leaflet-control-attribution { font-size: 9px !important; }
 </style>
@@ -148,10 +175,13 @@
     <input id="q" type="search" placeholder="Hľadať miesto…" autocomplete="off" enterkeyhint="search">
     <div id="results" class="results"></div>
   </div>
+  <button class="round" id="btnPlans" aria-label="Program">📅<span class="nbadge" id="plansBadge" hidden></span></button>
   <button class="round" id="btnList" aria-label="Zoznam">📖</button>
   <button class="round" id="btnMenu" aria-label="Menu">👥</button>
 </div>
 
+<div class="chips" id="chips"></div>
+<div class="counter" id="counter" hidden></div>
 <button class="round styleBtn" id="btnStyle" aria-label="Vzhľad mapy">🛰</button>
 <button class="round locate" id="btnLocate" aria-label="Moja poloha">🎯</button>
 <button class="fab" id="btnAdd" aria-label="Pridať">+</button>
@@ -173,10 +203,12 @@
   <p class="sub" id="formLoc"></p>
   <div class="seg" id="fKind">
     <button data-k="visited">🏆 Boli sme tu</button>
-    <button data-k="wish">💙 Chceme ísť</button>
+    <button data-k="wish">🧭 Chceme ísť</button>
   </div>
   <label for="fName">Miesto</label>
   <input id="fName" type="text" placeholder="napr. Dubrovník">
+  <label>Kategória</label>
+  <div class="cats" id="fCats"></div>
   <div id="fDateRow">
     <label for="fDate">Dátum</label>
     <input id="fDate" type="date">
@@ -200,6 +232,7 @@
   <p class="note" id="dNote"></p>
   <div class="thumbs" id="dThumbs"></div>
   <button class="btn primary" id="dVisited" hidden>✅ Boli sme tu!</button>
+  <button class="btn" id="dPlan">📅 Naplánovať</button>
   <div class="btns">
     <button class="btn" id="dEdit">✏️ Upraviť</button>
     <button class="btn danger" id="dDelete">🗑 Zmazať</button>
@@ -212,7 +245,7 @@
   <h2>Naše Dundies 🏆</h2>
   <div class="seg" id="listKind">
     <button data-k="visited" class="on">🏆 Boli sme</button>
-    <button data-k="wish">💙 Chceme ísť</button>
+    <button data-k="wish">🧭 Chceme ísť</button>
   </div>
   <p class="sub" id="listCount"></p>
   <div id="list"></div>
@@ -230,9 +263,43 @@
   <button class="btn" id="mMigrate" hidden></button>
   <button class="btn" id="mFit">🌍 Ukázať všetky na mape</button>
   <button class="btn" id="mOther">🔁 Iná mapa / zadať kód</button>
+  <button class="btn" id="mPush">🔔 Zapnúť upozornenia</button>
   <button class="btn" id="mPassword">🔑 Zmeniť heslo</button>
   <button class="btn danger" id="mLogout">Odhlásiť sa</button>
   <p class="sub" id="mUser" style="text-align:center;margin-top:12px"></p>
+</div>
+
+<!-- Program -->
+<div class="sheet" id="plansSheet">
+  <div class="grip"></div>
+  <h2>Náš program 📅</h2>
+  <p class="sub">Navrhni, čo spolu podniknete. Partner dostane upozornenie a odpovie.</p>
+  <button class="btn primary" id="plNew">＋ Navrhnúť program</button>
+  <div id="plList"></div>
+</div>
+
+<div class="sheet" id="planForm">
+  <div class="grip"></div>
+  <h2>Návrh programu 💌</h2>
+  <label for="pfTitle">Čo</label>
+  <input id="pfTitle" type="text" placeholder="napr. Futbal, divadlo, túra…">
+  <label>Kategória</label>
+  <div class="cats" id="pfCats"></div>
+  <label for="pfPlace">Kde</label>
+  <input id="pfPlace" type="text" placeholder="napr. Bratislava, SND">
+  <label for="pfDate">Dátum</label>
+  <input id="pfDate" type="date">
+  <div class="row2">
+    <div><label for="pfFrom">Od</label><input id="pfFrom" type="time"></div>
+    <div><label for="pfTo">Do</label><input id="pfTo" type="time"></div>
+  </div>
+  <p class="sub" style="margin-top:6px">Bez času = celodenný program</p>
+  <label for="pfNote">Poznámka</label>
+  <textarea id="pfNote" placeholder="napr. lístky kúpim ja 😉"></textarea>
+  <div class="btns">
+    <button class="btn" id="pfCancel">Zrušiť</button>
+    <button class="btn primary" id="pfSend">Poslať návrh</button>
+  </div>
 </div>
 
 <!-- Prihlásenie -->
@@ -313,6 +380,25 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 const BUCKET = 'photos';
 const APP_URL = location.origin + location.pathname;
+const VAPID_PUBLIC = 'BN26CVBxAqAys4cavne65wv86wlhxQq2ESqZXU2nRt3TaLvEDPWsANdMGVLG1pvHQNZB0VHvztefNtejNsqYIdI';
+const CATS = [
+  { k: 'sport', e: '⚽', n: 'Šport' }, { k: 'culture', e: '🎭', n: 'Kultúra' }, { k: 'nature', e: '🌲', n: 'Príroda' },
+  { k: 'food', e: '🍽', n: 'Jedlo' }, { k: 'city', e: '🏙', n: 'Mesto' }, { k: 'fun', e: '🎉', n: 'Zábava' }, { k: 'relax', e: '🧘', n: 'Relax' }
+];
+const catOf = k => CATS.find(c => c.k === k);
+let plans = [];
+let memberEmails = [];
+let pushOn = false;
+function notify(kind, id) { try { sb.functions.invoke('notify', { body: { kind, id } }).catch(() => {}); } catch (_) {} }
+function drawCatChips(sel, current, onPick) {
+  const box = $(sel); box.innerHTML = '';
+  for (const c of CATS) {
+    const b = document.createElement('button'); b.textContent = `${c.e} ${c.n}`;
+    if (c.k === current) b.className = 'on';
+    b.onclick = () => { const nv = current === c.k ? null : c.k; current = nv; onPick(nv); drawCatChips(sel, nv, onPick); };
+    box.appendChild(b);
+  }
+}
 
 let me = null;        // prihlásený používateľ
 let mapInfo = null;   // aktuálna spoločná mapa {id, name, code}
@@ -431,21 +517,50 @@ const layer = L.markerClusterGroup({
 }).addTo(map);
 let meMarker = null;
 
-function teardrop(color) {
-  return `<div class="tear"><svg viewBox="0 0 36 48" width="36" height="48"><path d="M18 46C18 46 3 28 3 17.5A15 15 0 0 1 33 17.5C33 28 18 46 18 46Z" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="18" cy="17.5" r="6" fill="#fff"/></svg></div>`;
+function teardrop(color, emoji) {
+  const inner = emoji
+    ? `<circle cx="18" cy="17.5" r="10" fill="#fff"/><text x="18" y="22" font-size="12" text-anchor="middle">${emoji}</text>`
+    : `<circle cx="18" cy="17.5" r="6" fill="#fff"/>`;
+  return `<div class="tear"><svg viewBox="0 0 36 48" width="36" height="48"><path d="M18 46C18 46 3 28 3 17.5A15 15 0 0 1 33 17.5C33 28 18 46 18 46Z" fill="${color}" stroke="#fff" stroke-width="3"/>${inner}</svg></div>`;
 }
 function iconFor(m) {
-  if (m.kind === 'wish') return L.divIcon({ html: teardrop('#2b7fff'), className: 'pin-wrap', iconSize: [36, 48], iconAnchor: [18, 46] });
+  const ce = catOf(m.category) ? catOf(m.category).e : '';
+  if (m.kind === 'wish') return L.divIcon({ html: teardrop('#2b7fff', ce), className: 'pin-wrap', iconSize: [36, 48], iconAnchor: [18, 46] });
   const url = m.photos && m.photos[0] && photoUrl(m.photos[0]);
   if (url) {
     const html = `<div class="pol"><div class="ph" style="background-image:url('${url}')"></div><div class="cap">${esc(m.name)}</div></div>`;
     return L.divIcon({ html, className: 'pin-wrap', iconSize: [64, 80], iconAnchor: [32, 88] });
   }
-  return L.divIcon({ html: teardrop('#ff4d5e'), className: 'pin-wrap', iconSize: [36, 48], iconAnchor: [18, 46] });
+  return L.divIcon({ html: teardrop('#ff4d5e', ce), className: 'pin-wrap', iconSize: [36, 48], iconAnchor: [18, 46] });
 }
+let fKind = 'all', fCat = null;
+function isVisible(m) {
+  if (fKind !== 'all' && (m.kind === 'wish' ? 'wish' : 'visited') !== fKind) return false;
+  if (fCat && m.category !== fCat) return false;
+  return true;
+}
+function drawChips() {
+  const box = $('#chips'); box.innerHTML = '';
+  if (!memories.length) return;
+  const add = (label, on, fn) => { const b = document.createElement('button'); b.textContent = label; if (on) b.className = 'on'; b.onclick = fn; box.appendChild(b); };
+  add('Všetko', fKind === 'all' && !fCat, () => { fKind = 'all'; fCat = null; render(); });
+  add('🏆 Dundies', fKind === 'visited', () => { fKind = fKind === 'visited' ? 'all' : 'visited'; render(); });
+  add('🧭 Plány', fKind === 'wish', () => { fKind = fKind === 'wish' ? 'all' : 'wish'; render(); });
+  for (const c of CATS) {
+    if (!memories.some(m => m.category === c.k) && fCat !== c.k) continue;
+    add(`${c.e} ${c.n}`, fCat === c.k, () => { fCat = fCat === c.k ? null : c.k; render(); });
+  }
+}
+function drawCounter() {
+  const v = memories.filter(m => m.kind !== 'wish').length, w = memories.length - v, el = $('#counter');
+  el.hidden = !memories.length;
+  el.textContent = `🏆 ${v} ${v === 1 ? 'miesto' : v > 1 && v < 5 ? 'miesta' : 'miest'} · 🧭 ${w} ${w === 1 ? 'plán' : w > 1 && w < 5 ? 'plány' : 'plánov'}`;
+}
+$('#counter').onclick = () => $('#btnList').click();
 function render() {
+  drawChips(); drawCounter();
   layer.clearLayers();
-  layer.addLayers(memories.map(m => L.marker([m.lat, m.lng], { icon: iconFor(m), mem: m }).on('click', () => openDetail(m))));
+  layer.addLayers(memories.filter(isVisible).map(m => L.marker([m.lat, m.lng], { icon: iconFor(m), mem: m }).on('click', () => openDetail(m))));
 }
 function fitAll() {
   if (!memories.length) return;
@@ -648,6 +763,13 @@ async function openMap(m) {
   await loadMemories();
   fitAll();
   subscribe();
+  loadPlans();
+  sb.rpc('map_member_emails', { m: m.id }).then(({ data }) => {
+    memberEmails = (data || []).filter(x => x.user_id !== me.id).map(x => x.email).filter(Boolean);
+  });
+  syncPush();
+  const qp = new URLSearchParams(location.search);
+  if (qp.get('plan')) { history.replaceState(null, '', APP_URL); setTimeout(openPlans, 400); }
 }
 let reloadTimer;
 function subscribe() {
@@ -655,9 +777,11 @@ function subscribe() {
   channel = sb.channel('mem-' + mapInfo.id)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'memories', filter: `map_id=eq.${mapInfo.id}` },
       () => { clearTimeout(reloadTimer); reloadTimer = setTimeout(loadMemories, 700); })
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'plans', filter: `map_id=eq.${mapInfo.id}` },
+      () => { clearTimeout(subscribe.pt); subscribe.pt = setTimeout(loadPlans, 500); })
     .subscribe();
 }
-document.addEventListener('visibilitychange', () => { if (!document.hidden && mapInfo) loadMemories(); });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && mapInfo) { loadMemories(); loadPlans(); } });
 
 async function loadMemories() {
   if (!mapInfo) return;
@@ -685,6 +809,7 @@ async function openMenu() {
     const names = data.map(x => x.user_id === me.id ? `${x.display_name || 'ty'} (ty)` : (x.display_name || '?'));
     $('#mMembers').textContent = data.length > 1 ? `👥 Na mape: ${names.join(', ')}` : '👤 Zatiaľ si tu sám – pošli kód partnerovi';
   }
+  updatePushBtn();
   const local = await localAll();
   const done = localStorage.getItem('dundies.migrated');
   $('#mMigrate').hidden = !local.length || !!done;
@@ -701,6 +826,12 @@ $('#mShare').onclick = async () => {
 };
 async function logout() {
   closeSheet();
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    const sub = reg && await reg.pushManager.getSubscription();
+    if (sub) await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+  } catch (_) {}
+  plans = []; drawPlanBadge();
   if (channel) { sb.removeChannel(channel); channel = null; }
   await sb.auth.signOut();
   me = null; mapInfo = null; memories = []; render();
@@ -738,6 +869,207 @@ $('#mMigrate').onclick = async () => {
   finally { btn.disabled = false; }
 };
 
+/* ---------- Program (návrhy) ---------- */
+function pendingForMe() {
+  const cut = Date.now() - 864e5;
+  return plans.filter(p => p.status === 'pending' && me && p.created_by !== me.id && new Date(p.starts_at).getTime() > cut);
+}
+function drawPlanBadge() { const n = pendingForMe().length, b = $('#plansBadge'); b.hidden = !n; b.textContent = n; }
+async function loadPlans() {
+  if (!mapInfo) return;
+  const { data, error } = await sb.from('plans').select('*').eq('map_id', mapInfo.id).order('starts_at');
+  if (error) return;
+  plans = data || [];
+  drawPlanBadge();
+  if (openSheetEl === $('#plansSheet')) drawPlans();
+}
+function openPlans() { drawPlans(); openSheet('#plansSheet'); }
+$('#btnPlans').onclick = () => { if (!mapInfo) return showPair(); openPlans(); };
+function hm(d) { return d.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' }); }
+function fmtWhen(p) {
+  const d = new Date(p.starts_at);
+  const o = { weekday: 'long', day: 'numeric', month: 'numeric' };
+  if (d.getFullYear() !== new Date().getFullYear()) o.year = 'numeric';
+  let s = d.toLocaleDateString('sk-SK', o);
+  s = s.charAt(0).toUpperCase() + s.slice(1);
+  if (p.all_day) return s + ' · celý deň';
+  return s + ' · ' + hm(d) + (p.ends_at ? '–' + hm(new Date(p.ends_at)) : '');
+}
+function ymd(d) { return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0'); }
+function gcalUrl(p) {
+  const s = new Date(p.starts_at); let dates;
+  if (p.all_day) { const e = new Date(s); e.setDate(e.getDate() + 1); dates = ymd(s) + '/' + ymd(e); }
+  else {
+    const e = p.ends_at ? new Date(p.ends_at) : new Date(s.getTime() + 2 * 36e5);
+    const f = d => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    dates = f(s) + '/' + f(e);
+  }
+  const cat = catOf(p.category);
+  const q = new URLSearchParams({
+    action: 'TEMPLATE', text: (cat ? cat.e + ' ' : '') + p.title, dates,
+    details: (p.note ? p.note + '\n\n' : '') + 'Naplánované v Dundies 🏆 ' + APP_URL,
+    location: p.place || ''
+  });
+  if (memberEmails.length) q.set('add', memberEmails.join(','));
+  return 'https://calendar.google.com/calendar/render?' + q.toString();
+}
+function drawPlans() {
+  const box = $('#plList'); box.innerHTML = '';
+  const cut = Date.now() - 864e5;
+  const up = plans.filter(p => new Date(p.starts_at).getTime() >= cut);
+  const past = plans.filter(p => new Date(p.starts_at).getTime() < cut).reverse();
+  if (!plans.length) box.innerHTML = '<div class="empty">Zatiaľ žiadny program.<br>Navrhni prvý! 💌</div>';
+  up.forEach(p => box.appendChild(planCard(p, false)));
+  if (past.length) {
+    const h = document.createElement('label'); h.textContent = 'Minulé'; box.appendChild(h);
+    past.slice(0, 20).forEach(p => box.appendChild(planCard(p, true)));
+  }
+}
+function planCard(p, past) {
+  const c = document.createElement('div'); c.className = 'plan ' + p.status + (past ? ' past' : '');
+  const cat = catOf(p.category), mine = p.created_by === me.id;
+  const w = document.createElement('div'); w.className = 'when'; w.textContent = fmtWhen(p);
+  const t = document.createElement('b'); t.textContent = (cat ? cat.e + ' ' : '') + p.title;
+  const meta = document.createElement('span');
+  meta.textContent = [p.place ? '📍 ' + p.place : '', mine ? 'navrhol(a) si ty' : 'navrhol(a) ' + (p.author_name || '?')].filter(Boolean).join(' · ');
+  c.append(w, t, meta);
+  if (p.note) { const n = document.createElement('p'); n.className = 'pn'; n.textContent = p.note; c.appendChild(n); }
+  const st = document.createElement('div'); st.className = 'st';
+  const byMe = p.responded_by === me.id;
+  st.textContent = p.status === 'accepted' ? `✅ Platí! ${byMe ? 'Súhlasil(a) si' : (p.responder_name || 'Partner') + ' súhlasí'}`
+    : p.status === 'declined' ? `❌ ${byMe ? 'Odmietol(a) si' : (p.responder_name || 'Partner') + ' nemôže'}`
+    : (mine ? '⏳ Čaká na odpoveď' : '⏳ Čaká na tvoju odpoveď');
+  c.appendChild(st);
+  const act = document.createElement('div'); act.className = 'act';
+  const btn = (txt, cls, fn) => { const b = document.createElement('button'); b.textContent = txt; b.className = cls; b.onclick = fn; act.appendChild(b); };
+  if (!past && p.status === 'pending' && !mine) { btn('✅ Áno, ideme', 'yes', () => answer(p, 'accepted')); btn('❌ Nemôžem', 'no', () => answer(p, 'declined')); }
+  if (p.status === 'accepted' && !past) {
+    const a = document.createElement('a'); a.className = 'gcal'; a.textContent = '📆 Do Google kalendára';
+    a.href = gcalUrl(p); a.target = '_blank'; a.rel = 'noopener'; act.appendChild(a);
+  }
+  if (!past && !mine && p.status !== 'pending') btn('↩︎', 'undo', () => answer(p, p.status === 'accepted' ? 'declined' : 'accepted'));
+  if (p.lat != null) btn('🗺', 'map', () => { closeSheet(); map.flyTo([p.lat, p.lng], 13, { duration: 1.2 }); });
+  if (mine) btn('🗑', 'del', () => delPlan(p));
+  if (act.children.length) c.appendChild(act);
+  return c;
+}
+async function answer(p, status) {
+  const { data, error } = await sb.from('plans').update({
+    status, responded_by: me.id, responder_name: myName(), responded_at: new Date().toISOString()
+  }).eq('id', p.id).select().single();
+  if (error) return toast('Chyba: ' + errText(error), 4000);
+  Object.assign(p, data); drawPlans(); drawPlanBadge();
+  notify('plan_answer', p.id);
+  toast(status === 'accepted' ? 'Super! Ťukni na „Do Google kalendára“ 📆' : 'Odpoveď odoslaná', 3500);
+}
+async function delPlan(p) {
+  if (!confirm(`Zmazať návrh „${p.title}“?`)) return;
+  const { error } = await sb.from('plans').delete().eq('id', p.id);
+  if (error) return toast('Chyba: ' + errText(error), 4000);
+  plans = plans.filter(x => x.id !== p.id); drawPlans(); drawPlanBadge();
+}
+let planDraft = null;
+function openPlanForm(pre = {}) {
+  planDraft = { category: null, ...pre };
+  $('#pfTitle').value = pre.title || ''; $('#pfPlace').value = pre.place || '';
+  const t = new Date(); t.setDate(t.getDate() + 1); t.setMinutes(t.getMinutes() - t.getTimezoneOffset());
+  $('#pfDate').value = t.toISOString().slice(0, 10);
+  $('#pfFrom').value = ''; $('#pfTo').value = ''; $('#pfNote').value = '';
+  drawCatChips('#pfCats', planDraft.category, k => { planDraft.category = k; });
+  openSheet('#planForm');
+}
+$('#plNew').onclick = () => openPlanForm();
+$('#pfCancel').onclick = () => openPlans();
+$('#pfSend').onclick = async () => {
+  const title = $('#pfTitle').value.trim(); if (!title) return toast('Napíš, čo chceš podniknúť');
+  const date = $('#pfDate').value; if (!date) return toast('Vyber dátum');
+  const from = $('#pfFrom').value, to = $('#pfTo').value;
+  const [y, mo, d] = date.split('-').map(Number);
+  const mk = v => { const [h, mi] = v.split(':').map(Number); return new Date(y, mo - 1, d, h, mi); };
+  const allDay = !from;
+  const s = allDay ? new Date(y, mo - 1, d, 12, 0) : mk(from);
+  let e = !allDay && to ? mk(to) : null;
+  if (e && e <= s) e.setDate(e.getDate() + 1);
+  const btn = $('#pfSend'); btn.disabled = true;
+  try {
+    const row = {
+      map_id: mapInfo.id, title, category: planDraft.category || null,
+      place: $('#pfPlace').value.trim() || null,
+      lat: planDraft.lat != null ? planDraft.lat : null, lng: planDraft.lng != null ? planDraft.lng : null,
+      memory_id: planDraft.memory_id || null,
+      starts_at: s.toISOString(), ends_at: e ? e.toISOString() : null, all_day: allDay,
+      note: $('#pfNote').value.trim() || null, author_name: myName()
+    };
+    const { data, error } = await sb.from('plans').insert(row).select().single();
+    if (error) throw error;
+    plans.push(data); plans.sort((a, b) => a.starts_at.localeCompare(b.starts_at));
+    notify('plan_new', data.id);
+    toast('Návrh odoslaný 💌', 3000);
+    openPlans();
+  } catch (err) { toast('Nepodarilo sa odoslať: ' + errText(err), 4000); }
+  finally { btn.disabled = false; }
+};
+
+/* ---------- Push upozornenia ---------- */
+function b64u(str) {
+  const pad = '='.repeat((4 - str.length % 4) % 4);
+  const raw = atob((str + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+}
+async function currentSub() {
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+    const reg = await navigator.serviceWorker.getRegistration();
+    return reg ? await reg.pushManager.getSubscription() : null;
+  } catch (_) { return null; }
+}
+async function updatePushBtn() {
+  const sub = await currentSub();
+  pushOn = !!sub && window.Notification && Notification.permission === 'granted';
+  $('#mPush').textContent = pushOn ? '🔔 Upozornenia zapnuté · poslať test' : '🔔 Zapnúť upozornenia';
+}
+async function saveSub(sub) {
+  const j = sub.toJSON();
+  const { error } = await sb.from('push_subscriptions').upsert(
+    { user_id: me.id, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth }, { onConflict: 'endpoint' });
+  if (error) throw error;
+}
+async function syncPush() {
+  const sub = await currentSub();
+  if (sub && window.Notification && Notification.permission === 'granted') { try { await saveSub(sub); } catch (_) {} }
+}
+$('#mPush').onclick = () => { if (pushOn) testPush(); else enablePush(); };
+async function enablePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+    toast(/iPhone|iPad/.test(navigator.userAgent)
+      ? 'Na iPhone fungujú upozornenia len v appke pridanej na plochu (Safari → Zdieľať → Pridať na plochu) a otvorenej z plochy.'
+      : 'Tento prehliadač upozornenia nepodporuje', 6500);
+    return;
+  }
+  let perm;
+  try { perm = await Notification.requestPermission(); } catch (_) { perm = Notification.permission; }
+  if (perm !== 'granted') return toast('Upozornenia nie sú povolené. Zapni ich v Nastaveniach telefónu pri Dundies.', 5000);
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64u(VAPID_PUBLIC) });
+    await saveSub(sub);
+    await updatePushBtn();
+    toast('🔔 Upozornenia sú zapnuté!');
+    setTimeout(testPush, 800);
+  } catch (e) { toast('Nepodarilo sa zapnúť: ' + errText(e), 5000); }
+}
+async function testPush() {
+  const { data, error } = await sb.functions.invoke('notify', { body: { kind: 'test' } });
+  if (error) return toast('Test zlyhal – je v Supabase nasadená funkcia „notify“?', 5000);
+  toast(data && data.sent ? 'Test odoslaný – o chvíľu príde notifikácia 🔔' : 'Notifikácia nedorazila – skús upozornenia vypnúť a zapnúť', 4000);
+}
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('message', e => {
+    if (e.data && e.data.open && /[?&]plan=/.test(e.data.open) && mapInfo) { loadPlans().then(openPlans); }
+  });
+}
+
 /* ---------- Pridávanie ---------- */
 let draft = null;
 function startPicking() { if (!mapInfo) return showPair(); document.body.classList.add('picking'); $('#picker').classList.add('show'); }
@@ -757,7 +1089,7 @@ function setKind(k) {
   document.querySelectorAll('#fKind button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
   $('#fDateRow').hidden = k === 'wish';
   $('#fNote').placeholder = k === 'wish' ? 'Prečo tam chceme ísť…' : 'Čo sme tam zažili…';
-  if (!draft.id || draft.becameVisited) $('#formTitle').textContent = draft.becameVisited ? 'Boli sme tu! 🏆' : (k === 'wish' ? 'Kam chceme ísť 💙' : 'Nový Dundie 🏆');
+  if (!draft.id || draft.becameVisited) $('#formTitle').textContent = draft.becameVisited ? 'Boli sme tu! 🏆' : (k === 'wish' ? 'Kam chceme ísť 🧭' : 'Nový Dundie 🏆');
 }
 document.querySelectorAll('#fKind button').forEach(b => b.onclick = () => setKind(b.dataset.k));
 function openForm(m) {
@@ -765,6 +1097,7 @@ function openForm(m) {
   if (!draft.date) draft.date = today();
   $('#formTitle').textContent = m.id ? 'Upraviť' : 'Nový Dundie 🏆';
   setKind(draft.kind);
+  drawCatChips('#fCats', draft.category || null, k => { draft.category = k; });
   $('#fName').value = draft.name || ''; $('#fDate').value = draft.date || today(); $('#fNote').value = draft.note || '';
   $('#formLoc').textContent = `📍 ${draft.lat.toFixed(4)}, ${draft.lng.toFixed(4)}`;
   drawFormThumbs(); openSheet('#formSheet');
@@ -825,6 +1158,7 @@ $('#fSave').onclick = async () => {
       id, map_id: mapInfo.id,
       name: $('#fName').value.trim() || 'Bez názvu',
       kind: d.kind === 'wish' ? 'wish' : 'visited',
+      category: d.category || null,
       date: d.kind === 'wish' ? null : ($('#fDate').value || today()),
       note: $('#fNote').value.trim(),
       lat: d.lat, lng: d.lng, photos: paths,
@@ -837,8 +1171,9 @@ $('#fSave').onclick = async () => {
     if (removed.length) sb.storage.from(BUCKET).remove(removed);
     const i = memories.findIndex(x => x.id === data.id);
     if (i >= 0) memories[i] = data; else memories.push(data);
+    if (!d.id) notify('memory_new', data.id);
     draft = null; render(); closeSheet();
-    toast(d.kind === 'wish' ? 'Pridané do „Kam chceme ísť“ 💙' : 'A Dundie ide do… tohto miesta! 🏆');
+    toast(d.kind === 'wish' ? 'Pridané do „Kam chceme ísť“ 🧭' : 'A Dundie ide do… tohto miesta! 🏆');
   } catch (e) { toast('Nepodarilo sa uložiť: ' + errText(e), 4000); }
   finally { save.disabled = false; save.textContent = 'Uložiť'; }
 };
@@ -849,7 +1184,8 @@ function openDetail(m) {
   current = m;
   $('#dName').textContent = m.name || 'Bez názvu';
   const wish = m.kind === 'wish';
-  $('#dDate').textContent = [wish ? '💙 Chceme ísť' : fmtDate(m.date), m.author_name ? `pridal(a) ${m.author_name}` : ''].filter(Boolean).join(' · ');
+  const cat = catOf(m.category);
+  $('#dDate').textContent = [wish ? '🧭 Chceme ísť' : fmtDate(m.date), cat ? `${cat.e} ${cat.n}` : '', m.author_name ? `pridal(a) ${m.author_name}` : ''].filter(Boolean).join(' · ');
   $('#dVisited').hidden = !wish;
   $('#dNote').textContent = m.note || '';
   $('#dNote').style.display = m.note ? '' : 'none';
@@ -863,6 +1199,7 @@ function openDetail(m) {
   openSheet('#detailSheet');
 }
 $('#dEdit').onclick = () => openForm(current);
+$('#dPlan').onclick = () => openPlanForm({ title: current.name, place: current.name, lat: current.lat, lng: current.lng, memory_id: current.id, category: current.category });
 $('#dVisited').onclick = () => openForm({ ...current, kind: 'visited', date: today(), becameVisited: true });
 $('#dDelete').onclick = async () => {
   if (!confirm(`Naozaj zmazať „${current.name}“? Zmizne aj partnerovi.`)) return;
@@ -903,13 +1240,13 @@ function drawList() {
   const n = items.length;
   $('#listCount').textContent = n ? `${n} ${n === 1 ? 'miesto' : n < 5 ? 'miesta' : 'miest'}` : '';
   if (!n) box.innerHTML = listKind === 'wish'
-    ? '<div class="empty">Zatiaľ žiadne sny.<br>Ťukni na <b>+</b>, vyber miesto a zvoľ <b>💙 Chceme ísť</b></div>'
+    ? '<div class="empty">Zatiaľ žiadne sny.<br>Ťukni na <b>+</b>, vyber miesto a zvoľ <b>🧭 Chceme ísť</b></div>'
     : '<div class="empty">Zatiaľ tu nič nie je.<br>Ťukni na <b>+</b> a pridaj prvé miesto 🌍</div>';
   for (const m of sorted) {
     const row = document.createElement('div'); row.className = 'list-item';
     const t = document.createElement('div'); t.className = 't';
     const u = m.photos && m.photos[0] && photoUrl(m.photos[0]);
-    if (u) t.style.backgroundImage = `url('${u}')`; else t.textContent = m.kind === 'wish' ? '💙' : '📍';
+    if (u) t.style.backgroundImage = `url('${u}')`; else t.textContent = catOf(m.category) ? catOf(m.category).e : (m.kind === 'wish' ? '🧭' : '📍');
     const txt = document.createElement('div');
     const b = document.createElement('b'); b.textContent = m.name || 'Bez názvu';
     const s = document.createElement('span');
