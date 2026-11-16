@@ -230,6 +230,7 @@
   <button class="btn" id="mMigrate" hidden></button>
   <button class="btn" id="mFit">🌍 Ukázať všetky na mape</button>
   <button class="btn" id="mOther">🔁 Iná mapa / zadať kód</button>
+  <button class="btn" id="mPassword">🔑 Zmeniť heslo</button>
   <button class="btn danger" id="mLogout">Odhlásiť sa</button>
   <p class="sub" id="mUser" style="text-align:center;margin-top:12px"></p>
 </div>
@@ -245,10 +246,13 @@
     </div>
     <label for="aEmail">E-mail</label>
     <input id="aEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="off">
-    <label for="aPass">Heslo</label>
-    <input id="aPass" type="password" autocomplete="current-password" placeholder="aspoň 6 znakov">
+    <div id="passRow">
+      <label for="aPass">Heslo</label>
+      <input id="aPass" type="password" autocomplete="current-password" placeholder="aspoň 6 znakov">
+    </div>
     <button class="btn primary" id="aGo">Prihlásiť sa</button>
     <p class="err" id="aErr"></p>
+    <button class="link" id="aForgot">Zabudol si heslo?</button>
     <button class="link" id="aSwitch">Nemáš účet? Vytvor si ho</button>
   </div>
 </div>
@@ -266,6 +270,21 @@
     <p class="err" id="pErr"></p>
     <button class="link" id="pBack" hidden>← Späť na mapu</button>
     <button class="link" id="pLogout">Odhlásiť sa</button>
+  </div>
+</div>
+
+<!-- Nové heslo -->
+<div class="screen" id="pwScreen" hidden style="z-index:5001">
+  <div class="card">
+    <h1>Nové heslo 🔑</h1>
+    <p class="sub">Zadaj nové heslo k svojmu účtu.</p>
+    <label for="pwNew">Nové heslo</label>
+    <input id="pwNew" type="password" autocomplete="new-password" placeholder="aspoň 6 znakov">
+    <label for="pwNew2">Zopakuj heslo</label>
+    <input id="pwNew2" type="password" autocomplete="new-password">
+    <button class="btn primary" id="pwSave">Uložiť heslo</button>
+    <p class="err" id="pwErr"></p>
+    <button class="link" id="pwCancel">Zrušiť</button>
   </div>
 </div>
 
@@ -290,9 +309,10 @@ const $ = s => document.querySelector(s);
 const SUPABASE_URL = 'https://xkmcohzferzcqgmcbynv.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_EDk2wVXCJH8wH5I_AZCUkg_aXLlXdsr';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' }
 });
 const BUCKET = 'photos';
+const APP_URL = location.origin + location.pathname;
 
 let me = null;        // prihlásený používateľ
 let mapInfo = null;   // aktuálna spoločná mapa {id, name, code}
@@ -325,7 +345,8 @@ function errText(e) {
   if (/Invalid login credentials/i.test(m)) return 'Nesprávny e-mail alebo heslo';
   if (/already registered/i.test(m)) return 'Tento e-mail už má účet – prihlás sa';
   if (/Email not confirmed/i.test(m)) return 'Najprv potvrď e-mail (pozri si schránku), potom sa prihlás';
-  if (/rate limit/i.test(m)) return 'Priveľa pokusov, skús to o chvíľu';
+  if (/rate limit/i.test(m)) return 'Priveľa pokusov, skús to o chvíľu (e-maily sa dajú posielať len párkrát za hodinu)';
+  if (/should be different/i.test(m)) return 'Nové heslo musí byť iné ako staré';
   if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Nie si pripojený na internet';
   return m;
 }
@@ -462,28 +483,43 @@ document.querySelectorAll('.sheet').forEach(s => {
 });
 
 /* ---------- Prihlásenie ---------- */
-let signupMode = false;
+let authMode = 'login';
 function showAuth() {
-  $('#pairScreen').hidden = true; $('#authScreen').hidden = false; $('#aErr').textContent = '';
+  $('#pairScreen').hidden = true; $('#authScreen').hidden = false;
 }
-function setSignup(on) {
-  signupMode = on;
-  $('#nameRow').hidden = !on;
-  $('#aGo').textContent = on ? 'Vytvoriť účet' : 'Prihlásiť sa';
-  $('#aSwitch').textContent = on ? 'Už máš účet? Prihlás sa' : 'Nemáš účet? Vytvor si ho';
-  $('#authSub').textContent = on ? 'Vytvor si účet – zaberie to pár sekúnd' : 'Prihlás sa do vašej spoločnej mapy';
-  $('#aPass').autocomplete = on ? 'new-password' : 'current-password';
+function setMode(m) {
+  authMode = m;
+  $('#nameRow').hidden = m !== 'signup';
+  $('#passRow').hidden = m === 'forgot';
+  $('#aForgot').hidden = m !== 'login';
+  $('#aGo').textContent = { login: 'Prihlásiť sa', signup: 'Vytvoriť účet', forgot: 'Poslať odkaz na nové heslo' }[m];
+  $('#aSwitch').textContent = m === 'login' ? 'Nemáš účet? Vytvor si ho' : '← Späť na prihlásenie';
+  $('#authSub').textContent = { login: 'Prihlás sa do vašej spoločnej mapy', signup: 'Vytvor si účet – zaberie to pár sekúnd', forgot: 'Zadaj e-mail a pošlem ti odkaz na nastavenie nového hesla' }[m];
+  $('#aPass').autocomplete = m === 'signup' ? 'new-password' : 'current-password';
   $('#aErr').textContent = ''; $('#aErr').className = 'err';
 }
-$('#aSwitch').onclick = () => setSignup(!signupMode);
+function setSignup(on) { setMode(on ? 'signup' : 'login'); }
+$('#aSwitch').onclick = () => setMode(authMode === 'login' ? 'signup' : 'login');
+$('#aForgot').onclick = () => setMode('forgot');
 $('#aGo').onclick = async () => {
   const email = $('#aEmail').value.trim(), password = $('#aPass').value, err = $('#aErr');
   err.className = 'err';
   if (!email || !email.includes('@')) return err.textContent = 'Zadaj e-mail';
+  if (authMode === 'forgot') {
+    const btn = $('#aGo'); btn.disabled = true;
+    try {
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: APP_URL });
+      if (error) throw error;
+      err.className = 'err ok';
+      err.textContent = 'Hotovo! Pozri si e-mail (aj spam) a ťukni na odkaz. Otvorí sa stránka, kde si nastavíš nové heslo.';
+    } catch (e) { err.textContent = errText(e); }
+    finally { btn.disabled = false; }
+    return;
+  }
   if (password.length < 6) return err.textContent = 'Heslo musí mať aspoň 6 znakov';
   const btn = $('#aGo'); btn.disabled = true;
   try {
-    if (signupMode) {
+    if (authMode === 'signup') {
       const name = $('#aName').value.trim();
       if (!name) { err.textContent = 'Zadaj svoje meno'; return; }
       const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: name } } });
@@ -505,6 +541,47 @@ $('#aGo').onclick = async () => {
   } catch (e) { err.textContent = errText(e); }
   finally { btn.disabled = false; }
 };
+
+/* ---------- Nové heslo ---------- */
+function showPw() { $('#pwNew').value = ''; $('#pwNew2').value = ''; $('#pwErr').textContent = ''; $('#pwErr').className = 'err'; $('#pwScreen').hidden = false; }
+$('#mPassword').onclick = () => { closeSheet(); showPw(); };
+$('#pwCancel').onclick = () => { $('#pwScreen').hidden = true; };
+$('#pwSave').onclick = async () => {
+  const a = $('#pwNew').value, b = $('#pwNew2').value, err = $('#pwErr');
+  err.className = 'err';
+  if (a.length < 6) return err.textContent = 'Heslo musí mať aspoň 6 znakov';
+  if (a !== b) return err.textContent = 'Heslá sa nezhodujú';
+  const btn = $('#pwSave'); btn.disabled = true;
+  try {
+    const { data, error } = await sb.auth.updateUser({ password: a });
+    if (error) throw error;
+    if (data && data.user) me = data.user;
+    $('#pwScreen').hidden = true;
+    toast('Heslo je zmenené ✅', 3000);
+    if (!mapInfo && me) { $('#authScreen').hidden = true; afterLogin(); }
+  } catch (e) { err.textContent = errText(e); }
+  finally { btn.disabled = false; }
+};
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    if (session) me = session.user;
+    setTimeout(showPw, 0);
+  }
+});
+// chyba z odkazu v e-maile (napr. vypršaný odkaz)
+(function () {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('error')) {
+    const code = h.get('error_code');
+    history.replaceState(null, '', APP_URL);
+    setTimeout(() => {
+      setMode('forgot'); showAuth();
+      $('#aErr').textContent = code === 'otp_expired'
+        ? 'Odkaz z e-mailu vypršal alebo už bol použitý. Pošli si nový.'
+        : 'Odkaz z e-mailu nefunguje: ' + (h.get('error_description') || code);
+    }, 0);
+  }
+})();
 
 /* ---------- Spoločná mapa ---------- */
 async function myMaps() {
@@ -884,6 +961,7 @@ async function search() {
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return showAuth();
     me = session.user;
+    if (/type=recovery/.test(location.hash)) history.replaceState(null, '', APP_URL);
     await afterLogin();
   } catch (e) { toast(errText(e), 4000); showAuth(); }
 })();

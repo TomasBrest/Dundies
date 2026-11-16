@@ -1,5 +1,5 @@
 // Service worker – appka sa načíta rýchlo aj pri slabom signáli
-const VERSION = 'dundies-v8';
+const VERSION = 'dundies-v9';
 const TILES = 'dundies-tiles';
 const MAX_TILES = 2000;
 const SHELL = [
