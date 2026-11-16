@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#0b2a4a">
+<meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,6 +13,8 @@
 <link rel="icon" href="icons/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.1/dist/maplibre-gl.css">
 <style>
   :root {
     --navy: #0b2a4a;
@@ -25,9 +27,10 @@
     --safe-b: env(safe-area-inset-bottom, 0px);
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); background: var(--navy); }
+  html, body { margin: 0; height: 100%; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--text); background: #000; }
   #map { position: fixed; inset: 0; background: #aad3df; }
   button { font: inherit; cursor: pointer; border: 0; }
+  [hidden] { display: none !important; }
 
   /* Horná lišta */
   .topbar { position: fixed; top: calc(var(--safe-t) + 10px); left: 10px; right: 10px; z-index: 1000; display: flex; gap: 8px; }
@@ -40,11 +43,9 @@
   .results div:last-child { border-bottom: 0; }
   .round { width: 46px; height: 46px; border-radius: 23px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.18); font-size: 20px; display: grid; place-items: center; flex: none; }
 
-  /* Plávajúce tlačidlá */
   .fab { position: fixed; right: 16px; bottom: calc(var(--safe-b) + 24px); z-index: 1000; width: 64px; height: 64px; border-radius: 32px; background: var(--accent); color: #fff; font-size: 34px; line-height: 1; box-shadow: 0 6px 18px rgba(255,77,94,.45); display: grid; place-items: center; }
   .locate { position: fixed; right: 25px; bottom: calc(var(--safe-b) + 100px); z-index: 1000; }
 
-  /* Režim výberu miesta */
   .picker { position: fixed; left: 12px; right: 12px; bottom: calc(var(--safe-b) + 100px); z-index: 1001; background: var(--navy); color: #fff; border-radius: 16px; padding: 14px 16px; box-shadow: 0 6px 24px rgba(0,0,0,.3); display: none; }
   .picker.show { display: block; }
   .picker p { margin: 0 0 10px; font-size: 15px; }
@@ -54,7 +55,7 @@
   body.picking #map { cursor: crosshair; }
   body.picking .fab, body.picking .locate { display: none; }
 
-  /* Značky na mape */
+  /* Značky */
   .pin-wrap { background: none; border: 0; }
   .pin { width: 46px; height: 46px; border-radius: 50%; border: 3px solid #fff; background: var(--accent) center/cover no-repeat; box-shadow: 0 3px 10px rgba(0,0,0,.35); display: grid; place-items: center; font-size: 20px; position: relative; }
   .pin::after { content: ""; position: absolute; bottom: -9px; left: 50%; transform: translateX(-50%); border: 7px solid transparent; border-top: 8px solid #fff; border-bottom: 0; }
@@ -62,18 +63,34 @@
   .pol .ph { width: 56px; height: 56px; border-radius: 2px; background: #ddd center/cover no-repeat; }
   .pol .cap { font-size: 9px; font-weight: 600; color: #333; text-align: center; padding: 3px 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pol::after { content: ""; position: absolute; bottom: -8px; left: 50%; transform: translateX(-50%) rotate(4deg); border: 7px solid transparent; border-top: 9px solid #fff; border-bottom: 0; }
+  .tear { width: 36px; height: 48px; }
+  .tear svg { display: block; filter: drop-shadow(0 3px 4px rgba(0,0,0,.35)); }
+  .stack { position: relative; width: 70px; height: 70px; }
+  .stack .pol { position: absolute; left: 3px; top: 3px; padding-bottom: 4px; }
+  .stack .pol::after { display: none; }
+  .stack .pol.back { transform: rotate(7deg); left: 8px; top: 0; }
+  .stack .pol.back .ph { background: #e9edf1; }
+  .badge { position: absolute; top: -6px; right: -4px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 700; display: grid; place-items: center; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.3); }
+  .cl { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 15px; display: grid; place-items: center; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.35); }
+  .cl.wish { background: #2b7fff; }
+  .seg { display: flex; background: #eef1f4; border-radius: 12px; padding: 4px; gap: 4px; margin: 4px 0 6px; }
+  .seg button { flex: 1; height: 40px; border-radius: 9px; background: none; font-size: 15px; font-weight: 600; color: var(--muted); }
+  .seg button.on { background: #fff; color: var(--text); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+  .styleBtn { position: fixed; right: 25px; bottom: calc(var(--safe-b) + 156px); z-index: 1000; }
+  body.picking .styleBtn { display: none; }
   .me { width: 18px; height: 18px; border-radius: 50%; background: #2b8cff; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(43,140,255,.25); }
 
-  /* Spodné panely */
+  /* Panely */
   .backdrop { position: fixed; inset: 0; z-index: 1999; background: rgba(0,0,0,.35); opacity: 0; pointer-events: none; transition: opacity .25s; }
   .backdrop.show { opacity: 1; pointer-events: auto; }
   .sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2000; background: var(--bg); border-radius: 20px 20px 0 0; max-height: 88vh; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px 18px calc(var(--safe-b) + 20px); transform: translateY(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1); box-shadow: 0 -4px 30px rgba(0,0,0,.2); }
   .sheet.show { transform: translateY(0); }
   .grip { width: 40px; height: 5px; border-radius: 3px; background: #d5dbe2; margin: 4px auto 12px; }
+  h1 { margin: 0 0 6px; font-size: 28px; }
   .sheet h2 { margin: 0 0 4px; font-size: 22px; }
   .sub { color: var(--muted); font-size: 14px; margin: 0 0 14px; }
   label { display: block; font-size: 13px; font-weight: 600; color: var(--muted); margin: 14px 0 6px; text-transform: uppercase; letter-spacing: .03em; }
-  input[type=text], input[type=date], textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f6f8fa; outline: none; color: var(--text); }
+  input[type=text], input[type=email], input[type=password], input[type=date], textarea { width: 100%; font: inherit; font-size: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: #f6f8fa; outline: none; color: var(--text); }
   input[type=date] { -webkit-appearance: none; min-height: 48px; }
   textarea { min-height: 90px; resize: vertical; }
   input:focus, textarea:focus { border-color: #9cc4ec; background: #fff; }
@@ -83,6 +100,9 @@
   .btn:disabled { opacity: .5; }
   .btns { display: flex; gap: 10px; }
   .btns .btn { flex: 1; }
+  .link { display: block; margin: 14px auto 0; background: none; color: var(--muted); font-size: 15px; text-decoration: underline; }
+  .err { color: #d22a3c; font-size: 14px; min-height: 1em; margin: 10px 0 0; }
+  .err.ok { color: #1f8a4c; }
 
   .thumbs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .thumb { position: relative; aspect-ratio: 1; border-radius: 10px; background: #eef1f4 center/cover no-repeat; overflow: hidden; }
@@ -97,14 +117,24 @@
   .list-item span { color: var(--muted); font-size: 13px; }
   .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
 
-  /* Fotka na celú obrazovku */
+  .codebox { display: flex; align-items: center; gap: 10px; background: #f6f8fa; border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; margin: 6px 0 10px; }
+  .codebox div { flex: 1; font-size: 13px; color: var(--muted); }
+  .codebox b { display: block; font-size: 22px; color: var(--text); letter-spacing: .06em; }
+  .codebox button { background: var(--accent); color: #fff; border-radius: 10px; padding: 10px 14px; font-weight: 600; }
+
+  /* Úvodné obrazovky */
+  .screen { position: fixed; inset: 0; z-index: 5000; background: #000 url(icons/icon-1024.png) center calc(var(--safe-t) + 10px) / min(100vw, 460px) no-repeat; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 12px calc(var(--safe-b) + 12px); overflow-y: auto; }
+  .card { background: #fff; border-radius: 22px; padding: 22px 18px 18px; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+  .mapchoice { display: block; width: 100%; text-align: left; padding: 12px 14px; border-radius: 12px; background: #f6f8fa; margin-top: 8px; font-size: 16px; }
+  .mapchoice span { color: var(--muted); font-size: 13px; }
+
   .lightbox { position: fixed; inset: 0; z-index: 3000; background: #000; display: none; align-items: center; justify-content: center; }
   .lightbox.show { display: flex; }
   .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
   .lightbox .close { position: absolute; top: calc(var(--safe-t) + 12px); right: 12px; background: rgba(255,255,255,.2); color: #fff; }
   .lightbox .count { position: absolute; bottom: calc(var(--safe-b) + 16px); color: #fff; opacity: .7; font-size: 14px; }
 
-  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 70px); transform: translateX(-50%); z-index: 4000; background: rgba(19,32,46,.92); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .toast { position: fixed; left: 50%; top: calc(var(--safe-t) + 70px); transform: translateX(-50%); z-index: 6000; background: rgba(19,32,46,.92); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; max-width: 90vw; text-align: center; }
   .toast.show { opacity: 1; }
   .leaflet-control-attribution { font-size: 9px !important; }
 </style>
@@ -119,11 +149,12 @@
     <div id="results" class="results"></div>
   </div>
   <button class="round" id="btnList" aria-label="Zoznam">📖</button>
-  <button class="round" id="btnMenu" aria-label="Menu">⋯</button>
+  <button class="round" id="btnMenu" aria-label="Menu">👥</button>
 </div>
 
+<button class="round styleBtn" id="btnStyle" aria-label="Vzhľad mapy">🛰</button>
 <button class="round locate" id="btnLocate" aria-label="Moja poloha">🎯</button>
-<button class="fab" id="btnAdd" aria-label="Pridať spomienku">+</button>
+<button class="fab" id="btnAdd" aria-label="Pridať">+</button>
 
 <div class="picker" id="picker">
   <p>Ťukni na mapu, kde ste boli 📍</p>
@@ -140,10 +171,16 @@
   <div class="grip"></div>
   <h2 id="formTitle">Nový Dundie 🏆</h2>
   <p class="sub" id="formLoc"></p>
+  <div class="seg" id="fKind">
+    <button data-k="visited">🏆 Boli sme tu</button>
+    <button data-k="wish">💙 Chceme ísť</button>
+  </div>
   <label for="fName">Miesto</label>
   <input id="fName" type="text" placeholder="napr. Dubrovník">
-  <label for="fDate">Dátum</label>
-  <input id="fDate" type="date">
+  <div id="fDateRow">
+    <label for="fDate">Dátum</label>
+    <input id="fDate" type="date">
+  </div>
   <label for="fNote">Poznámka</label>
   <textarea id="fNote" placeholder="Čo sme tam zažili…"></textarea>
   <label>Fotky</label>
@@ -162,6 +199,7 @@
   <p class="sub" id="dDate"></p>
   <p class="note" id="dNote"></p>
   <div class="thumbs" id="dThumbs"></div>
+  <button class="btn primary" id="dVisited" hidden>✅ Boli sme tu!</button>
   <div class="btns">
     <button class="btn" id="dEdit">✏️ Upraviť</button>
     <button class="btn danger" id="dDelete">🗑 Zmazať</button>
@@ -172,19 +210,63 @@
 <div class="sheet" id="listSheet">
   <div class="grip"></div>
   <h2>Naše Dundies 🏆</h2>
+  <div class="seg" id="listKind">
+    <button data-k="visited" class="on">🏆 Boli sme</button>
+    <button data-k="wish">💙 Chceme ísť</button>
+  </div>
   <p class="sub" id="listCount"></p>
   <div id="list"></div>
 </div>
 
-<!-- Menu -->
+<!-- Menu / spoločná mapa -->
 <div class="sheet" id="menuSheet">
   <div class="grip"></div>
-  <h2>Nastavenia</h2>
-  <p class="sub">Spomienky sú uložené len v tomto telefóne. Občas si sprav zálohu.</p>
-  <button class="btn" id="mExport">💾 Uložiť zálohu</button>
-  <button class="btn" id="mImport">📂 Obnoviť zo zálohy</button>
-  <input id="importFile" type="file" accept="application/json,.json" hidden>
+  <h2 id="mMapName">Naša mapa</h2>
+  <p class="sub" id="mMembers"></p>
+  <div class="codebox">
+    <div>Kód na pozvanie<b id="mCode"></b></div>
+    <button id="mShare">Pozvať</button>
+  </div>
+  <button class="btn" id="mMigrate" hidden></button>
   <button class="btn" id="mFit">🌍 Ukázať všetky na mape</button>
+  <button class="btn" id="mOther">🔁 Iná mapa / zadať kód</button>
+  <button class="btn danger" id="mLogout">Odhlásiť sa</button>
+  <p class="sub" id="mUser" style="text-align:center;margin-top:12px"></p>
+</div>
+
+<!-- Prihlásenie -->
+<div class="screen" id="authScreen" hidden>
+  <div class="card">
+    <h1>Dundies 🏆</h1>
+    <p class="sub" id="authSub">Prihlás sa do vašej spoločnej mapy</p>
+    <div id="nameRow" hidden>
+      <label for="aName">Tvoje meno</label>
+      <input id="aName" type="text" placeholder="napr. Tomáš" autocomplete="given-name">
+    </div>
+    <label for="aEmail">E-mail</label>
+    <input id="aEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="off">
+    <label for="aPass">Heslo</label>
+    <input id="aPass" type="password" autocomplete="current-password" placeholder="aspoň 6 znakov">
+    <button class="btn primary" id="aGo">Prihlásiť sa</button>
+    <p class="err" id="aErr"></p>
+    <button class="link" id="aSwitch">Nemáš účet? Vytvor si ho</button>
+  </div>
+</div>
+
+<!-- Prepojenie -->
+<div class="screen" id="pairScreen" hidden>
+  <div class="card">
+    <h1>Ahoj, <span id="pName"></span> 👋</h1>
+    <p class="sub">Vytvor spoločnú mapu, alebo sa pripoj kódom, ktorý ti poslal partner.</p>
+    <div id="pMaps"></div>
+    <button class="btn primary" id="pCreate">🗺 Vytvoriť novú spoločnú mapu</button>
+    <label for="pCode">Kód od partnera</label>
+    <input id="pCode" type="text" placeholder="napr. BEET-4821" autocapitalize="characters" autocomplete="off">
+    <button class="btn" id="pJoin">🔗 Pripojiť sa</button>
+    <p class="err" id="pErr"></p>
+    <button class="link" id="pBack" hidden>← Späť na mapu</button>
+    <button class="link" id="pLogout">Odhlásiť sa</button>
+  </div>
 </div>
 
 <div class="lightbox" id="lightbox">
@@ -196,48 +278,56 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/maplibre-gl@5.24.1/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet@0.1.4/leaflet-maplibre-gl.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script>
 'use strict';
 const $ = s => document.querySelector(s);
 
-/* ---------- Databáza (IndexedDB) ---------- */
-const STORE = 'memories';
-const dbReady = new Promise((res, rej) => {
-  const r = indexedDB.open('spomienky', 1);
-  r.onupgradeneeded = () => r.result.createObjectStore(STORE, { keyPath: 'id' });
-  r.onsuccess = () => res(r.result);
-  r.onerror = () => rej(r.error);
+/* ---------- Supabase ---------- */
+const SUPABASE_URL = 'https://xkmcohzferzcqgmcbynv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_EDk2wVXCJH8wH5I_AZCUkg_aXLlXdsr';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
 });
-async function dbAll() {
-  const db = await dbReady;
-  return new Promise((res, rej) => {
-    const q = db.transaction(STORE).objectStore(STORE).getAll();
-    q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error);
-  });
-}
-async function dbDo(fn) {
-  const db = await dbReady;
-  return new Promise((res, rej) => {
-    const t = db.transaction(STORE, 'readwrite');
-    fn(t.objectStore(STORE));
-    t.oncomplete = res; t.onerror = () => rej(t.error);
-  });
-}
-const dbPut = m => dbDo(s => s.put(m));
-const dbDel = id => dbDo(s => s.delete(id));
+const BUCKET = 'photos';
+
+let me = null;        // prihlásený používateľ
+let mapInfo = null;   // aktuálna spoločná mapa {id, name, code}
+let memories = [];
+let channel = null;
+const signed = new Map(); // cesta k fotke -> URL
 
 /* ---------- Pomocné ---------- */
 const urls = new Map();
 function blobUrl(b) { if (!urls.has(b)) urls.set(b, URL.createObjectURL(b)); return urls.get(b); }
+function photoUrl(p) { return typeof p === 'string' ? signed.get(p) : blobUrl(p); }
 function today() { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
 function fmtDate(s) {
   if (!s) return '';
   const [y, m, d] = s.split('-').map(Number);
   return new Date(y, m - 1, d).toLocaleDateString('sk-SK', { day: 'numeric', month: 'long', year: 'numeric' });
 }
-function toast(msg) {
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function toast(msg, ms = 2400) {
   const t = $('#toast'); t.textContent = msg; t.classList.add('show');
-  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200);
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), ms);
+}
+function myName() { return (me && me.user_metadata && me.user_metadata.display_name) || (me && me.email ? me.email.split('@')[0] : ''); }
+function uuid() {
+  if (crypto.randomUUID) return crypto.randomUUID();
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c => (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
+}
+function errText(e) {
+  const m = (e && (e.message || e.error_description)) || String(e);
+  if (/Invalid login credentials/i.test(m)) return 'Nesprávny e-mail alebo heslo';
+  if (/already registered/i.test(m)) return 'Tento e-mail už má účet – prihlás sa';
+  if (/Email not confirmed/i.test(m)) return 'Najprv potvrď e-mail (pozri si schránku), potom sa prihlás';
+  if (/rate limit/i.test(m)) return 'Priveľa pokusov, skús to o chvíľu';
+  if (/Failed to fetch|NetworkError|Load failed/i.test(m)) return 'Nie si pripojený na internet';
+  return m;
 }
 function loadImg(file) {
   return new Promise((res, rej) => {
@@ -247,7 +337,6 @@ function loadImg(file) {
     img.src = u;
   });
 }
-// Zmenší fotku, aby sa do telefónu zmestilo veľa spomienok
 async function shrink(file, max = 1600, q = 0.82) {
   const img = await loadImg(file);
   const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
@@ -256,38 +345,91 @@ async function shrink(file, max = 1600, q = 0.82) {
   c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
   return new Promise(res => c.toBlob(b => res(b || file), 'image/jpeg', q));
 }
-const blobToData = b => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(b); });
+
+/* ---------- Staré spomienky z telefónu (na presun do cloudu) ---------- */
+function localAll() {
+  return new Promise(res => {
+    try {
+      const r = indexedDB.open('spomienky', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('memories', { keyPath: 'id' });
+      r.onsuccess = () => {
+        try {
+          const q = r.result.transaction('memories').objectStore('memories').getAll();
+          q.onsuccess = () => res(q.result || []); q.onerror = () => res([]);
+        } catch (_) { res([]); }
+      };
+      r.onerror = () => res([]);
+    } catch (_) { res([]); }
+  });
+}
 
 /* ---------- Mapa ---------- */
-const map = L.map('map', { zoomControl: false, worldCopyJump: true, attributionControl: true }).setView([48.7, 19.5], 4);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19,
-  attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-}).addTo(map);
+const map = L.map('map', { zoomControl: false, worldCopyJump: true, maxZoom: 19 }).setView([48.7, 19.5], 4);
+const OSM_ATTR = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+function makeStreets() {
+  // živá vektorová mapa (OpenFreeMap „Liberty“); bez WebGL záložná klasická mapa
+  try {
+    const c = document.createElement('canvas');
+    const gl = c.getContext('webgl2') || c.getContext('webgl');
+    if (L.maplibreGL && window.maplibregl && gl) {
+      return L.maplibreGL({ style: 'https://tiles.openfreemap.org/styles/liberty', attribution: '<a href="https://openfreemap.org">OpenFreeMap</a> ' + OSM_ATTR });
+    }
+  } catch (_) {}
+  return L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: OSM_ATTR });
+}
+const baseLayers = {
+  streets: makeStreets(),
+  satellite: L.layerGroup([
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' }),
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
+  ])
+};
+let baseKey = localStorage.getItem('dundies.style') === 'satellite' ? 'satellite' : 'streets';
+baseLayers[baseKey].addTo(map);
+function setStyleBtn() { $('#btnStyle').textContent = baseKey === 'streets' ? '🛰' : '🗺'; }
+setStyleBtn();
+$('#btnStyle').onclick = () => {
+  map.removeLayer(baseLayers[baseKey]);
+  baseKey = baseKey === 'streets' ? 'satellite' : 'streets';
+  baseLayers[baseKey].addTo(map); localStorage.setItem('dundies.style', baseKey); setStyleBtn();
+  toast(baseKey === 'streets' ? 'Mapa 🗺' : 'Satelit 🛰', 1200);
+};
 
-let memories = [];
-const layer = L.layerGroup().addTo(map);
+const layer = L.markerClusterGroup({
+  showCoverageOnHover: false, maxClusterRadius: 55, spiderfyOnMaxZoom: true,
+  iconCreateFunction: c => {
+    const ms = c.getAllChildMarkers().map(x => x.options.mem), n = ms.length;
+    const ph = ms.find(m => m.kind !== 'wish' && m.photos && m.photos[0] && photoUrl(m.photos[0]));
+    if (ph) {
+      const html = `<div class="stack"><div class="pol back"><div class="ph"></div></div><div class="pol"><div class="ph" style="background-image:url('${photoUrl(ph.photos[0])}')"></div></div><span class="badge">${n}</span></div>`;
+      return L.divIcon({ html, className: 'pin-wrap', iconSize: [70, 70], iconAnchor: [35, 35] });
+    }
+    const wish = ms.every(m => m.kind === 'wish');
+    return L.divIcon({ html: `<div class="cl${wish ? ' wish' : ''}">${n}</div>`, className: 'pin-wrap', iconSize: [44, 44], iconAnchor: [22, 22] });
+  }
+}).addTo(map);
 let meMarker = null;
 
+function teardrop(color) {
+  return `<div class="tear"><svg viewBox="0 0 36 48" width="36" height="48"><path d="M18 46C18 46 3 28 3 17.5A15 15 0 0 1 33 17.5C33 28 18 46 18 46Z" fill="${color}" stroke="#fff" stroke-width="3"/><circle cx="18" cy="17.5" r="6" fill="#fff"/></svg></div>`;
+}
 function iconFor(m) {
-  const p = m.photos && m.photos[0];
-  if (p) {
-    const cap = String(m.name || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const html = `<div class="pol"><div class="ph" style="background-image:url('${blobUrl(p)}')"></div><div class="cap">${cap}</div></div>`;
+  if (m.kind === 'wish') return L.divIcon({ html: teardrop('#2b7fff'), className: 'pin-wrap', iconSize: [36, 48], iconAnchor: [18, 46] });
+  const url = m.photos && m.photos[0] && photoUrl(m.photos[0]);
+  if (url) {
+    const html = `<div class="pol"><div class="ph" style="background-image:url('${url}')"></div><div class="cap">${esc(m.name)}</div></div>`;
     return L.divIcon({ html, className: 'pin-wrap', iconSize: [64, 80], iconAnchor: [32, 88] });
   }
-  return L.divIcon({ html: '<div class="pin">📍</div>', className: 'pin-wrap', iconSize: [46, 46], iconAnchor: [23, 55] });
+  return L.divIcon({ html: teardrop('#ff4d5e'), className: 'pin-wrap', iconSize: [36, 48], iconAnchor: [18, 46] });
 }
 function render() {
   layer.clearLayers();
-  for (const m of memories) {
-    L.marker([m.lat, m.lng], { icon: iconFor(m) }).on('click', () => openDetail(m)).addTo(layer);
-  }
+  layer.addLayers(memories.map(m => L.marker([m.lat, m.lng], { icon: iconFor(m), mem: m }).on('click', () => openDetail(m))));
 }
 function fitAll() {
   if (!memories.length) return;
   if (memories.length === 1) map.setView([memories[0].lat, memories[0].lng], 10);
-  else map.fitBounds(L.latLngBounds(memories.map(m => [m.lat, m.lng])), { padding: [60, 60], maxZoom: 12 });
+  else map.fitBounds(L.latLngBounds(memories.map(m => [m.lat, m.lng])), { padding: [70, 70], maxZoom: 12 });
 }
 
 /* ---------- Panely ---------- */
@@ -302,8 +444,6 @@ function closeSheet() {
   openSheetEl = null; $('#backdrop').classList.remove('show');
 }
 $('#backdrop').onclick = closeSheet;
-
-// potiahnutie panelu nadol ho zavrie
 document.querySelectorAll('.sheet').forEach(s => {
   let y0 = null;
   s.addEventListener('touchstart', e => { y0 = s.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
@@ -321,28 +461,234 @@ document.querySelectorAll('.sheet').forEach(s => {
   });
 });
 
-/* ---------- Pridávanie ---------- */
-let draft = null; // { id?, lat, lng, name, date, note, photos: Blob[] }
+/* ---------- Prihlásenie ---------- */
+let signupMode = false;
+function showAuth() {
+  $('#pairScreen').hidden = true; $('#authScreen').hidden = false; $('#aErr').textContent = '';
+}
+function setSignup(on) {
+  signupMode = on;
+  $('#nameRow').hidden = !on;
+  $('#aGo').textContent = on ? 'Vytvoriť účet' : 'Prihlásiť sa';
+  $('#aSwitch').textContent = on ? 'Už máš účet? Prihlás sa' : 'Nemáš účet? Vytvor si ho';
+  $('#authSub').textContent = on ? 'Vytvor si účet – zaberie to pár sekúnd' : 'Prihlás sa do vašej spoločnej mapy';
+  $('#aPass').autocomplete = on ? 'new-password' : 'current-password';
+  $('#aErr').textContent = ''; $('#aErr').className = 'err';
+}
+$('#aSwitch').onclick = () => setSignup(!signupMode);
+$('#aGo').onclick = async () => {
+  const email = $('#aEmail').value.trim(), password = $('#aPass').value, err = $('#aErr');
+  err.className = 'err';
+  if (!email || !email.includes('@')) return err.textContent = 'Zadaj e-mail';
+  if (password.length < 6) return err.textContent = 'Heslo musí mať aspoň 6 znakov';
+  const btn = $('#aGo'); btn.disabled = true;
+  try {
+    if (signupMode) {
+      const name = $('#aName').value.trim();
+      if (!name) { err.textContent = 'Zadaj svoje meno'; return; }
+      const { data, error } = await sb.auth.signUp({ email, password, options: { data: { display_name: name } } });
+      if (error) throw error;
+      if (!data.session) {
+        setSignup(false);
+        err.className = 'err ok';
+        err.textContent = 'Účet je vytvorený. Potvrď e-mail v schránke a potom sa tu prihlás.';
+        return;
+      }
+      me = data.user;
+    } else {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      me = data.user;
+    }
+    $('#authScreen').hidden = true;
+    await afterLogin();
+  } catch (e) { err.textContent = errText(e); }
+  finally { btn.disabled = false; }
+};
 
-function startPicking() { document.body.classList.add('picking'); $('#picker').classList.add('show'); }
+/* ---------- Spoločná mapa ---------- */
+async function myMaps() {
+  const { data, error } = await sb.from('map_members').select('maps(id,name,code)').eq('user_id', me.id);
+  if (error) throw error;
+  return (data || []).map(r => r.maps).filter(Boolean);
+}
+async function afterLogin() {
+  try {
+    const maps = await myMaps();
+    const saved = localStorage.getItem('dundies.map');
+    const pick = maps.find(m => m.id === saved) || maps[0];
+    if (pick) await openMap(pick); else showPair(maps);
+  } catch (e) { toast(errText(e), 4000); showPair([]); }
+}
+async function showPair(maps) {
+  $('#authScreen').hidden = true;
+  $('#pName').textContent = myName();
+  $('#pErr').textContent = ''; $('#pCode').value = '';
+  $('#pBack').hidden = !mapInfo;
+  if (!maps) { try { maps = await myMaps(); } catch (_) { maps = []; } }
+  const box = $('#pMaps'); box.innerHTML = '';
+  if (maps.length) {
+    const l = document.createElement('label'); l.textContent = 'Tvoje mapy'; box.appendChild(l);
+    for (const m of maps) {
+      const b = document.createElement('button'); b.className = 'mapchoice';
+      b.innerHTML = `${m.id === (mapInfo && mapInfo.id) ? '✅' : '🗺'} ${esc(m.name)} <span>· ${esc(m.code)}</span>`;
+      b.onclick = () => openMap(m);
+      box.appendChild(b);
+    }
+  }
+  $('#pairScreen').hidden = false;
+}
+$('#pBack').onclick = () => { $('#pairScreen').hidden = true; };
+$('#pCreate').onclick = async () => {
+  const btn = $('#pCreate'); btn.disabled = true;
+  try {
+    const { data, error } = await sb.rpc('create_map', { p_name: 'Naša mapa', p_display: myName() });
+    if (error) throw error;
+    await openMap(data);
+    openMenu();
+    toast('Mapa je hotová! Pošli kód partnerovi 💌', 3500);
+  } catch (e) { $('#pErr').textContent = errText(e); }
+  finally { btn.disabled = false; }
+};
+$('#pJoin').onclick = async () => {
+  const code = $('#pCode').value.trim();
+  if (!code) return $('#pErr').textContent = 'Zadaj kód';
+  const btn = $('#pJoin'); btn.disabled = true;
+  try {
+    const { data, error } = await sb.rpc('join_map', { p_code: code, p_display: myName() });
+    if (error) throw error;
+    await openMap(data);
+    toast('Ste prepojení! 🎉', 3000);
+  } catch (e) { $('#pErr').textContent = errText(e); }
+  finally { btn.disabled = false; }
+};
+
+async function openMap(m) {
+  mapInfo = m;
+  localStorage.setItem('dundies.map', m.id);
+  $('#pairScreen').hidden = true;
+  memories = []; render();
+  await loadMemories();
+  fitAll();
+  subscribe();
+}
+let reloadTimer;
+function subscribe() {
+  if (channel) sb.removeChannel(channel);
+  channel = sb.channel('mem-' + mapInfo.id)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'memories', filter: `map_id=eq.${mapInfo.id}` },
+      () => { clearTimeout(reloadTimer); reloadTimer = setTimeout(loadMemories, 700); })
+    .subscribe();
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && mapInfo) loadMemories(); });
+
+async function loadMemories() {
+  if (!mapInfo) return;
+  const { data, error } = await sb.from('memories').select('*').eq('map_id', mapInfo.id);
+  if (error) { toast('Nepodarilo sa načítať: ' + errText(error), 4000); return; }
+  const need = [...new Set(data.flatMap(m => m.photos || []))].filter(p => !signed.has(p));
+  for (let i = 0; i < need.length; i += 100) {
+    const { data: list } = await sb.storage.from(BUCKET).createSignedUrls(need.slice(i, i + 100), 60 * 60 * 24 * 7);
+    (list || []).forEach(u => { if (u.signedUrl) signed.set(u.path, u.signedUrl); });
+  }
+  memories = data;
+  render();
+}
+
+/* ---------- Menu ---------- */
+async function openMenu() {
+  if (!mapInfo) return showPair();
+  $('#mMapName').textContent = mapInfo.name;
+  $('#mCode').textContent = mapInfo.code;
+  $('#mUser').textContent = `Prihlásený: ${myName()} (${me.email})`;
+  $('#mMembers').textContent = '';
+  openSheet('#menuSheet');
+  const { data } = await sb.from('map_members').select('display_name,user_id').eq('map_id', mapInfo.id);
+  if (data) {
+    const names = data.map(x => x.user_id === me.id ? `${x.display_name || 'ty'} (ty)` : (x.display_name || '?'));
+    $('#mMembers').textContent = data.length > 1 ? `👥 Na mape: ${names.join(', ')}` : '👤 Zatiaľ si tu sám – pošli kód partnerovi';
+  }
+  const local = await localAll();
+  const done = localStorage.getItem('dundies.migrated');
+  $('#mMigrate').hidden = !local.length || !!done;
+  $('#mMigrate').textContent = `⬆️ Presunúť ${local.length} ${local.length === 1 ? 'spomienku' : 'spomienky'} z tohto telefónu sem`;
+}
+$('#btnMenu').onclick = openMenu;
+$('#mFit').onclick = () => { closeSheet(); fitAll(); };
+$('#mOther').onclick = () => { closeSheet(); showPair(); };
+$('#mShare').onclick = async () => {
+  const link = location.origin + location.pathname;
+  const text = `Pridaj sa ku mne v Dundies 🏆\n1. Otvor ${link}\n2. Vytvor si účet\n3. Zadaj kód: ${mapInfo.code}`;
+  if (navigator.share) { try { await navigator.share({ text }); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  try { await navigator.clipboard.writeText(text); toast('Pozvánka skopírovaná 📋'); } catch (_) { toast(`Kód: ${mapInfo.code}`, 4000); }
+};
+async function logout() {
+  closeSheet();
+  if (channel) { sb.removeChannel(channel); channel = null; }
+  await sb.auth.signOut();
+  me = null; mapInfo = null; memories = []; render();
+  localStorage.removeItem('dundies.map');
+  setSignup(false); showAuth();
+}
+$('#mLogout').onclick = logout;
+$('#pLogout').onclick = logout;
+
+$('#mMigrate').onclick = async () => {
+  const btn = $('#mMigrate'); btn.disabled = true;
+  try {
+    const local = await localAll();
+    let n = 0;
+    for (const m of local) {
+      n++; btn.textContent = `Presúvam ${n}/${local.length}…`;
+      const id = uuid(), paths = [];
+      for (const b of (m.photos || [])) {
+        const path = `${mapInfo.id}/${id}/${uuid()}.jpg`;
+        const { error } = await sb.storage.from(BUCKET).upload(path, b, { contentType: 'image/jpeg' });
+        if (error) throw error;
+        signed.set(path, blobUrl(b)); paths.push(path);
+      }
+      const { error } = await sb.from('memories').insert({
+        id, map_id: mapInfo.id, author_name: myName(), name: m.name, date: m.date || null,
+        note: m.note || '', lat: m.lat, lng: m.lng, photos: paths
+      });
+      if (error) throw error;
+    }
+    localStorage.setItem('dundies.migrated', '1');
+    btn.hidden = true;
+    await loadMemories(); fitAll();
+    toast('Hotovo! Spomienky sú v spoločnej mape 🎉', 3500);
+  } catch (e) { toast('Chyba: ' + errText(e), 4000); btn.textContent = '⬆️ Skúsiť znova'; }
+  finally { btn.disabled = false; }
+};
+
+/* ---------- Pridávanie ---------- */
+let draft = null;
+function startPicking() { if (!mapInfo) return showPair(); document.body.classList.add('picking'); $('#picker').classList.add('show'); }
 function stopPicking() { document.body.classList.remove('picking'); $('#picker').classList.remove('show'); }
 $('#btnAdd').onclick = startPicking;
 $('#pickCancel').onclick = stopPicking;
-$('#pickHere').onclick = () => {
-  locate(pos => { stopPicking(); openForm({ lat: pos.lat, lng: pos.lng }); });
-};
+$('#pickHere').onclick = () => locate(pos => { stopPicking(); openForm({ lat: pos.lat, lng: pos.lng }); });
 map.on('click', e => {
   $('#results').classList.remove('show');
   if (!document.body.classList.contains('picking')) return;
   stopPicking(); openForm({ lat: e.latlng.lat, lng: e.latlng.lng });
 });
-// dlhé podržanie prsta na mape = rýchle pridanie
-map.on('contextmenu', e => openForm({ lat: e.latlng.lat, lng: e.latlng.lng }));
+map.on('contextmenu', e => { if (mapInfo) openForm({ lat: e.latlng.lat, lng: e.latlng.lng }); });
 
+function setKind(k) {
+  draft.kind = k;
+  document.querySelectorAll('#fKind button').forEach(b => b.classList.toggle('on', b.dataset.k === k));
+  $('#fDateRow').hidden = k === 'wish';
+  $('#fNote').placeholder = k === 'wish' ? 'Prečo tam chceme ísť…' : 'Čo sme tam zažili…';
+  if (!draft.id || draft.becameVisited) $('#formTitle').textContent = draft.becameVisited ? 'Boli sme tu! 🏆' : (k === 'wish' ? 'Kam chceme ísť 💙' : 'Nový Dundie 🏆');
+}
+document.querySelectorAll('#fKind button').forEach(b => b.onclick = () => setKind(b.dataset.k));
 function openForm(m) {
-  draft = { name: '', date: today(), note: '', photos: [], ...m, photos: [...(m.photos || [])] };
-  $('#formTitle').textContent = m.id ? 'Upraviť Dundie' : 'Nový Dundie 🏆';
-  $('#fName').value = draft.name; $('#fDate').value = draft.date; $('#fNote').value = draft.note;
+  draft = { name: '', date: today(), note: '', kind: 'visited', ...m, photos: [...(m.photos || [])], origPhotos: [...(m.photos || [])] };
+  if (!draft.date) draft.date = today();
+  $('#formTitle').textContent = m.id ? 'Upraviť' : 'Nový Dundie 🏆';
+  setKind(draft.kind);
+  $('#fName').value = draft.name || ''; $('#fDate').value = draft.date || today(); $('#fNote').value = draft.note || '';
   $('#formLoc').textContent = `📍 ${draft.lat.toFixed(4)}, ${draft.lng.toFixed(4)}`;
   drawFormThumbs(); openSheet('#formSheet');
   if (!m.id) suggestName(draft);
@@ -354,14 +700,14 @@ async function suggestName(d) {
     const name = a.city || a.town || a.village || a.municipality || a.county || a.state || a.country;
     if (name && draft === d && !$('#fName').value) {
       $('#fName').value = name;
-      $('#formLoc').textContent = `📍 ${[name, a.country].filter(Boolean).filter((v, i, x) => x.indexOf(v) === i).join(', ')}`;
+      $('#formLoc').textContent = `📍 ${[name, a.country].filter((v, i, x) => v && x.indexOf(v) === i).join(', ')}`;
     }
-  } catch (_) { /* bez internetu – nevadí */ }
+  } catch (_) {}
 }
 function drawFormThumbs() {
   const box = $('#fThumbs'); box.innerHTML = '';
-  draft.photos.forEach((b, i) => {
-    const t = document.createElement('div'); t.className = 'thumb'; t.style.backgroundImage = `url('${blobUrl(b)}')`;
+  draft.photos.forEach((p, i) => {
+    const t = document.createElement('div'); t.className = 'thumb'; t.style.backgroundImage = `url('${photoUrl(p)}')`;
     const x = document.createElement('button'); x.className = 'x'; x.textContent = '✕';
     x.onclick = () => { draft.photos.splice(i, 1); drawFormThumbs(); };
     t.appendChild(x); box.appendChild(t);
@@ -374,60 +720,85 @@ function drawFormThumbs() {
 $('#fFiles').onchange = async e => {
   const files = [...e.target.files]; e.target.value = '';
   if (!files.length) return;
-  const save = $('#fSave'); save.disabled = true; save.textContent = 'Spracúvam fotky…';
+  const save = $('#fSave'); save.disabled = true; save.textContent = 'Spracúvam…';
   for (const f of files) {
     try { draft.photos.push(await shrink(f)); drawFormThumbs(); }
-    catch (err) { toast('Jednu fotku sa nepodarilo načítať'); }
+    catch (_) { toast('Jednu fotku sa nepodarilo načítať'); }
   }
   save.disabled = false; save.textContent = 'Uložiť';
 };
 $('#fCancel').onclick = () => { draft = null; closeSheet(); };
 $('#fSave').onclick = async () => {
-  const m = {
-    id: draft.id || Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    lat: draft.lat, lng: draft.lng,
-    name: $('#fName').value.trim() || 'Bez názvu',
-    date: $('#fDate').value || today(),
-    note: $('#fNote').value.trim(),
-    photos: draft.photos,
-    created: draft.created || Date.now()
-  };
+  const save = $('#fSave'); save.disabled = true;
+  const d = draft;
   try {
-    await dbPut(m);
-    if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
-  } catch (err) { toast('Nepodarilo sa uložiť – možno je plné úložisko'); return; }
-  const i = memories.findIndex(x => x.id === m.id);
-  if (i >= 0) memories[i] = m; else memories.push(m);
-  draft = null; render(); closeSheet(); toast('A Dundie ide do… tohto miesta! 🏆');
+    const id = d.id || uuid();
+    const fresh = d.photos.filter(p => typeof p !== 'string');
+    const paths = []; let k = 0;
+    for (const p of d.photos) {
+      if (typeof p === 'string') { paths.push(p); continue; }
+      k++; save.textContent = `Nahrávam fotky ${k}/${fresh.length}…`;
+      const path = `${mapInfo.id}/${id}/${uuid()}.jpg`;
+      const { error } = await sb.storage.from(BUCKET).upload(path, p, { contentType: 'image/jpeg' });
+      if (error) throw error;
+      signed.set(path, blobUrl(p)); paths.push(path);
+    }
+    save.textContent = 'Ukladám…';
+    const row = {
+      id, map_id: mapInfo.id,
+      name: $('#fName').value.trim() || 'Bez názvu',
+      kind: d.kind === 'wish' ? 'wish' : 'visited',
+      date: d.kind === 'wish' ? null : ($('#fDate').value || today()),
+      note: $('#fNote').value.trim(),
+      lat: d.lat, lng: d.lng, photos: paths,
+      updated_at: new Date().toISOString()
+    };
+    if (!d.id) row.author_name = myName();
+    const { data, error } = await sb.from('memories').upsert(row).select().single();
+    if (error) throw error;
+    const removed = (d.origPhotos || []).filter(p => typeof p === 'string' && !paths.includes(p));
+    if (removed.length) sb.storage.from(BUCKET).remove(removed);
+    const i = memories.findIndex(x => x.id === data.id);
+    if (i >= 0) memories[i] = data; else memories.push(data);
+    draft = null; render(); closeSheet();
+    toast(d.kind === 'wish' ? 'Pridané do „Kam chceme ísť“ 💙' : 'A Dundie ide do… tohto miesta! 🏆');
+  } catch (e) { toast('Nepodarilo sa uložiť: ' + errText(e), 4000); }
+  finally { save.disabled = false; save.textContent = 'Uložiť'; }
 };
 
 /* ---------- Detail ---------- */
 let current = null;
 function openDetail(m) {
   current = m;
-  $('#dName').textContent = m.name;
-  $('#dDate').textContent = fmtDate(m.date);
+  $('#dName').textContent = m.name || 'Bez názvu';
+  const wish = m.kind === 'wish';
+  $('#dDate').textContent = [wish ? '💙 Chceme ísť' : fmtDate(m.date), m.author_name ? `pridal(a) ${m.author_name}` : ''].filter(Boolean).join(' · ');
+  $('#dVisited').hidden = !wish;
   $('#dNote').textContent = m.note || '';
   $('#dNote').style.display = m.note ? '' : 'none';
   const box = $('#dThumbs'); box.innerHTML = '';
-  m.photos.forEach((b, i) => {
-    const t = document.createElement('button'); t.className = 'thumb'; t.style.backgroundImage = `url('${blobUrl(b)}')`;
-    t.onclick = () => openLightbox(m.photos, i);
+  const list = (m.photos || []).map(photoUrl).filter(Boolean);
+  list.forEach((u, i) => {
+    const t = document.createElement('button'); t.className = 'thumb'; t.style.backgroundImage = `url('${u}')`;
+    t.onclick = () => openLightbox(list, i);
     box.appendChild(t);
   });
   openSheet('#detailSheet');
 }
 $('#dEdit').onclick = () => openForm(current);
+$('#dVisited').onclick = () => openForm({ ...current, kind: 'visited', date: today(), becameVisited: true });
 $('#dDelete').onclick = async () => {
-  if (!confirm(`Naozaj zmazať „${current.name}“?`)) return;
-  await dbDel(current.id);
+  if (!confirm(`Naozaj zmazať „${current.name}“? Zmizne aj partnerovi.`)) return;
+  const { error } = await sb.from('memories').delete().eq('id', current.id);
+  if (error) return toast('Nepodarilo sa zmazať: ' + errText(error), 4000);
+  if (current.photos && current.photos.length) sb.storage.from(BUCKET).remove(current.photos);
   memories = memories.filter(x => x.id !== current.id);
   render(); closeSheet(); toast('Zmazané');
 };
 
 /* ---------- Fotka na celú obrazovku ---------- */
 let lb = { list: [], i: 0 };
-function showLb() { $('#lbImg').src = blobUrl(lb.list[lb.i]); $('#lbCount').textContent = lb.list.length > 1 ? `${lb.i + 1} / ${lb.list.length}` : ''; }
+function showLb() { $('#lbImg').src = lb.list[lb.i]; $('#lbCount').textContent = lb.list.length > 1 ? `${lb.i + 1} / ${lb.list.length}` : ''; }
 function openLightbox(list, i) { lb = { list, i }; showLb(); $('#lightbox').classList.add('show'); }
 $('#lbClose').onclick = e => { e.stopPropagation(); $('#lightbox').classList.remove('show'); };
 $('#lightbox').onclick = e => {
@@ -442,24 +813,35 @@ $('#lightbox').addEventListener('touchend', e => {
 });
 
 /* ---------- Zoznam ---------- */
-$('#btnList').onclick = () => {
+let listKind = 'visited';
+document.querySelectorAll('#listKind button').forEach(b => b.onclick = () => { listKind = b.dataset.k; drawList(); });
+$('#btnList').onclick = () => { drawList(); openSheet('#listSheet'); };
+function drawList() {
+  document.querySelectorAll('#listKind button').forEach(b => b.classList.toggle('on', b.dataset.k === listKind));
   const box = $('#list'); box.innerHTML = '';
-  const sorted = [...memories].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-  $('#listCount').textContent = memories.length ? `${memories.length} ${memories.length === 1 ? 'miesto' : memories.length < 5 ? 'miesta' : 'miest'}` : '';
-  if (!sorted.length) box.innerHTML = '<div class="empty">Zatiaľ tu nič nie je.<br>Ťukni na <b>+</b> a pridaj prvé miesto 🌍</div>';
+  const items = memories.filter(m => (m.kind === 'wish') === (listKind === 'wish'));
+  const sorted = listKind === 'wish'
+    ? [...items].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))
+    : [...items].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  const n = items.length;
+  $('#listCount').textContent = n ? `${n} ${n === 1 ? 'miesto' : n < 5 ? 'miesta' : 'miest'}` : '';
+  if (!n) box.innerHTML = listKind === 'wish'
+    ? '<div class="empty">Zatiaľ žiadne sny.<br>Ťukni na <b>+</b>, vyber miesto a zvoľ <b>💙 Chceme ísť</b></div>'
+    : '<div class="empty">Zatiaľ tu nič nie je.<br>Ťukni na <b>+</b> a pridaj prvé miesto 🌍</div>';
   for (const m of sorted) {
     const row = document.createElement('div'); row.className = 'list-item';
     const t = document.createElement('div'); t.className = 't';
-    if (m.photos[0]) t.style.backgroundImage = `url('${blobUrl(m.photos[0])}')`; else t.textContent = '📍';
+    const u = m.photos && m.photos[0] && photoUrl(m.photos[0]);
+    if (u) t.style.backgroundImage = `url('${u}')`; else t.textContent = m.kind === 'wish' ? '💙' : '📍';
     const txt = document.createElement('div');
-    const b = document.createElement('b'); b.textContent = m.name;
-    const s = document.createElement('span'); s.textContent = fmtDate(m.date) + (m.photos.length ? ` · ${m.photos.length} 📷` : '');
+    const b = document.createElement('b'); b.textContent = m.name || 'Bez názvu';
+    const s = document.createElement('span');
+    s.textContent = [m.kind === 'wish' ? '' : fmtDate(m.date), m.author_name, (m.photos || []).length ? `${m.photos.length} 📷` : ''].filter(Boolean).join(' · ');
     txt.append(b, s); row.append(t, txt);
     row.onclick = () => { closeSheet(); map.flyTo([m.lat, m.lng], Math.max(map.getZoom(), 10), { duration: 1.2 }); setTimeout(() => openDetail(m), 1300); };
     box.appendChild(row);
   }
-  openSheet('#listSheet');
-};
+}
 
 /* ---------- Poloha ---------- */
 function locate(cb) {
@@ -489,60 +871,22 @@ async function search() {
     if (!list.length) box.innerHTML = '<div>Nič som nenašiel</div>';
     for (const p of list) {
       const d = document.createElement('div'); d.textContent = p.display_name;
-      d.onclick = () => {
-        box.classList.remove('show'); $('#q').value = ''; $('#q').blur();
-        map.flyTo([+p.lat, +p.lon], 12, { duration: 1.2 });
-      };
+      d.onclick = () => { box.classList.remove('show'); $('#q').value = ''; $('#q').blur(); map.flyTo([+p.lat, +p.lon], 12, { duration: 1.2 }); };
       box.appendChild(d);
     }
     box.classList.add('show');
   } catch (_) { toast('Vyhľadávanie potrebuje internet'); }
 }
 
-/* ---------- Záloha ---------- */
-$('#btnMenu').onclick = () => openSheet('#menuSheet');
-$('#mFit').onclick = () => { closeSheet(); fitAll(); };
-$('#mExport').onclick = async () => {
-  if (!memories.length) return toast('Zatiaľ nie je čo zálohovať');
-  toast('Pripravujem zálohu…');
-  const data = {
-    app: 'spomienky', version: 1, exported: new Date().toISOString(),
-    memories: await Promise.all(memories.map(async m => ({ ...m, photos: await Promise.all(m.photos.map(blobToData)) })))
-  };
-  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-  const name = `dundies-zaloha-${today()}.json`;
-  const file = new File([blob], name, { type: 'application/json' });
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Záloha Dundies' }); return; }
-    catch (e) { if (e.name === 'AbortError') return; }
-  }
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-};
-$('#mImport').onclick = () => $('#importFile').click();
-$('#importFile').onchange = async e => {
-  const f = e.target.files[0]; e.target.value = '';
-  if (!f) return;
-  try {
-    const data = JSON.parse(await f.text());
-    if (!data || !Array.isArray(data.memories)) throw new Error();
-    let n = 0;
-    for (const m of data.memories) {
-      if (typeof m.lat !== 'number' || typeof m.lng !== 'number') continue;
-      const photos = await Promise.all((m.photos || []).map(d => fetch(d).then(r => r.blob())));
-      const mem = { id: String(m.id), lat: m.lat, lng: m.lng, name: String(m.name || 'Bez názvu'), date: String(m.date || ''), note: String(m.note || ''), photos, created: m.created || Date.now() };
-      await dbPut(mem);
-      const i = memories.findIndex(x => x.id === mem.id);
-      if (i >= 0) memories[i] = mem; else memories.push(mem);
-      n++;
-    }
-    render(); fitAll(); closeSheet(); toast(`Obnovené: ${n} spomienok`);
-  } catch (_) { toast('Tento súbor nie je záloha spomienok'); }
-};
-
 /* ---------- Štart ---------- */
-dbAll().then(list => { memories = list; render(); fitAll(); })
-  .catch(() => toast('Úložisko nie je dostupné'));
+(async () => {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return showAuth();
+    me = session.user;
+    await afterLogin();
+  } catch (e) { toast(errText(e), 4000); showAuth(); }
+})();
 
 if ('serviceWorker' in navigator) {
   addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
