@@ -1061,7 +1061,18 @@ async function enablePush() {
 }
 async function testPush() {
   const { data, error } = await sb.functions.invoke('notify', { body: { kind: 'test' } });
-  if (error) return toast('Test zlyhal – je v Supabase nasadená funkcia „notify“?', 5000);
+  if (error) {
+    let detail = error.name || 'chyba';
+    try {
+      const r = error.context;
+      if (r && typeof r.status === 'number') {
+        let body = '';
+        try { body = await r.clone().text(); } catch (_) {}
+        detail = r.status + (body ? ': ' + body.slice(0, 160) : '');
+      } else if (error.message) detail = error.message;
+    } catch (_) {}
+    return toast('Test zlyhal (' + detail + ')', 12000);
+  }
   toast(data && data.sent ? 'Test odoslaný – o chvíľu príde notifikácia 🔔' : 'Notifikácia nedorazila – skús upozornenia vypnúť a zapnúť', 4000);
 }
 if ('serviceWorker' in navigator) {
